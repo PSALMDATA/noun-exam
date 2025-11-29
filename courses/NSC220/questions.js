@@ -1,4 +1,4 @@
-const QUESTIONS = [
+QUESTIONS = [
   {
     question: "Philosophy in nursing refers to:",
     options: {
