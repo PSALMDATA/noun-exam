@@ -889,4 +889,3 @@ const QUESTIONS = [
   
 ];
 
-export default QUESTIONS;
