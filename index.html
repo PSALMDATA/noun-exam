@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NOUN E-exam Portal</title>
+<style>
+*{ box-sizing:border-box; font-family:Arial, Helvetica, sans-serif }
+body{ margin:0;background:#f6f6f6 }
+.topbar{ background:#0e8b3a;color:#fff;padding:10px 16px; display:flex;justify-content:space-between;align-items:center }
+.wrap{ max-width:1100px;margin:18px auto;background:#fff;border:1px solid #ddd;min-height:640px;position:relative }
+.login-area{ padding:40px; display:flex; gap:48px }
+.login-panel{ flex:0 0 420px }
+.login-panel input{ width:100%; padding:8px; margin:10px 0; border:1px solid #bbb; border-radius:4px }
+.btn{ display:inline-block; padding:10px 18px; background:#0e8b3a; color:#fff; border-radius:4px; cursor:pointer; border:none }
+.btn.secondary{ background:#3f89c6 }
+.exam-area{ display:none; gap:16px; padding:20px }
+.left-column{ width:220px }
+.main-column{ flex:1 }
+.question-card{ background:#89d1f7; padding:14px; border-radius:3px; margin-bottom:12px }
+.option{ display:block; margin:6px 0 }
+.fbq{ width:100%; padding:8px; margin-top:8px }
+.right-column{ width:160px }
+.nav-num{ width:38px; height:38px; border:1px solid #0e8b3a; display:flex; align-items:center; justify-content:center; margin:4px; cursor:pointer; border-radius:4px }
+.nav-num.answered{ background:#0e8b3a; color:#fff }
+.pager{ display:flex; justify-content:space-between; margin-top:12px }
+.modal{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; justify-content:center; align-items:center; visibility:hidden; opacity:0; transition:.2s }
+.modal.show{ visibility:visible; opacity:1 }
+.modal .box{ background:#fff; padding:18px; max-width:600px; border-radius:6px }
+.small-muted{ color:#666; font-size:13px }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="left">NOUN E-EXAM PORTAL</div>
+    <div class="right">
+      <button id="logoutBtn" class="btn" style="display:none">Logout</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- AUTH VIEW -->
+    <div id="authView" class="login-area">
+      <div class="login-panel">
+        <h2>Login / Signup</h2>
+        <label class="small-muted">Matric number (e.g. nou123456789)</label>
+        <input id="matric" type="text" placeholder="Matric number (nou...)" autocomplete="off">
+        <label class="small-muted">Password (for demo: same as matric)</label>
+        <input id="pass" type="password" placeholder="Password (same as matric)">
+        <div id="courseSection" style="display:none; margin-top:12px;">
+          <label class="small-muted">Select course</label>
+          <div id="courseBox"></div>
+          <button id="loadCourseBtn" class="btn" style="margin-top:10px;">Load Course</button>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px">
+          <button id="loginBtn" class="btn">Login</button>
+          <button id="signupBtn" class="btn secondary">Sign Up</button>
+        </div>
+
+        <div id="authMsg" style="color:red;margin-top:8px;"></div>
+      </div>
+
+      <div style="flex:1; background:#fafafa;border:1px solid #eee;padding:18px">
+        <h3>Exam Instructions</h3>
+        <ul>
+          <li>Use your matric number prefixed with <code>nou</code> (demo data).</li>
+          <li>Questions show <strong>5 per page</strong>.</li>
+          <li>Load only the course you are registered for.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- EXAM VIEW -->
+    <div id="examView" class="exam-area">
+      <div class="left-column">
+        <div class="course-box" id="selectedCourseBox"></div>
+        <div class="timer-box" id="timer">01:30:00</div>
+      </div>
+
+      <div class="main-column">
+        <div id="questionHolder"></div>
+        <div class="pager">
+          <button id="prevBtn" class="btn">Prev</button>
+          <button id="nextBtn" class="btn">Next</button>
+        </div>
+        <div id="finalResult" style="margin-top:18px; font-size:18px;"></div>
+      </div>
+
+      <div class="right-column">
+        <div id="navGrid" style="display:flex; flex-wrap:wrap;"></div>
+      </div>
+    </div>
+
+  </div> <!-- END WRAP -->
+
+  <!-- MODAL -->
+  <div id="confirmModal" class="modal">
+    <div class="box">
+      <h3>Submit Exam?</h3>
+      <div id="fullNav" style="display:flex; flex-wrap:wrap; margin:12px 0;"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button id="confirmSubmit" class="btn">Submit</button>
+        <button id="cancelSubmit" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===========================
+   GLOBALS & DEMO DATA
+   =========================== */
+let QUESTIONS = [];       // filled by loaded course file (or demo)
+let page = 0;
+const perPage = 5;
+let timerSeconds = 90 * 60; // default 90 minutes
+let timerInterval = null;
+let selectedCourse = null;
+let userAnswers = {}; // index -> answer (for simple grading)
+
+const qs = (s)=>document.querySelector(s);
+
+/* demo student "database" (in a real setup this would be server-side) */
+const students = {
+  "nou123456789": { password:"nou123456789", courses:["GST101","MTH101", "GST103","GST102"] },
+  "NOU252202514":     { password:"NOU252202514",     courses:["NSC209","POL111"] },
+  "NOU250341232":     { password:"NOU250341232",     courses:["NSC210", "NSC220"] }
+};
+
+/* mapping for course titles (display only) */
+const COURSE_LIST = {
+  "MTH101":"Elementary Mathematics I",
+  "GST101":"Use of English I",
+  "BIO101":"General Biology I",
+  "CHM101":"General Chemistry I",
+  "GST103":"Use of English II"
+};
+
+/* -------------------------
+   Helper: case-insensitive student lookup
+   ------------------------- */
+function findStudentKey(inputMatric){
+  const im = inputMatric.trim().toLowerCase();
+  for(const k of Object.keys(students)){
+    if(k.toLowerCase() === im) return k;
+  }
+  return null;
+}
+
+/* ===========================
+   LOGIN / COURSE PICKER
+   =========================== */
+function showMessage(msg, isError=true){
+  const el = qs("#authMsg");
+  el.style.color = isError ? "red" : "green";
+  el.textContent = msg;
+}
+
+/* when user clicks login */
+async function login(){
+  showMessage("");
+  const matric = qs("#matric").value.trim();
+  const pass = qs("#pass").value.trim();
+  if(!matric || !pass){
+    showMessage("Enter matric and password.");
+    return;
+  }
+
+  const key = findStudentKey(matric);
+  if(!key){
+    showMessage("Student not found.");
+    return;
+  }
+  const user = students[key];
+
+  if(user.password !== pass){
+    showMessage("Incorrect password.");
+    return;
+  }
+
+  // success -> populate course select with allowed courses
+  const courseBox = qs("#courseBox");
+  courseBox.innerHTML = `
+    <select id="courseSelect" style="padding:6px;width:100%">
+      <option value="">-- Select Course --</option>
+      ${user.courses.map(c => `<option value="${c}">${c} - ${COURSE_LIST[c] || c}</option>`).join("")}
+    </select>
+  `;
+
+  qs("#courseSection").style.display = "block";
+  qs("#logoutBtn").style.display = "inline-block";
+  showMessage("Login successful — choose a course below.", false);
+
+  // focus select
+  setTimeout(()=>qs("#courseSelect").focus(), 50);
+}
+
+/* signUp does the same as login in this demo (password=matric) */
+function signUp(){
+  // for demo: if matric not in students, create a stub user with no courses
+  const matric = qs("#matric").value.trim();
+  const pass = qs("#pass").value.trim();
+  if(!matric || !pass){
+    showMessage("Enter matric and password.");
+    return;
+  }
+  const existing = findStudentKey(matric);
+  if(existing){
+    showMessage("Account already exists — please login.");
+    return;
+  }
+  // add demo entry (no courses yet)
+  students[matric] = { password: pass, courses: [] };
+  showMessage("Account created (demo). Ask admin to assign courses.", false);
+}
+
+/* ===========================
+   Load course questions
+   Notes:
+     - This loader expects a JS file at "courses/<COURSE>/questions.js"
+       that sets the global QUESTIONS array, e.g. in that file:
+         QUESTIONS = [ { question: "...", type:"mcq", options:{A:..}, answer:"A" }, ... ];
+     - We remove any previously added <script id="qFile"> so repeatedly loading works.
+   =========================== */
+function loadCourseQuestions(courseCode){
+  return new Promise((resolve,reject)=>{
+    if(!courseCode) return reject("No course selected.");
+
+    // remove old script
+    const old = document.getElementById("qFile");
+    if(old) old.remove();
+
+    // create new script tag to load the course file (works offline file:// if you use js)
+    const path = `courses/${courseCode}/questions.js`;
+    const s = document.createElement("script");
+    s.id = "qFile";
+    s.src = path;
+    s.onload = ()=>{
+      // the course script must set QUESTIONS to an array
+      if(Array.isArray(QUESTIONS) && QUESTIONS.length>0){
+        resolve();
+      } else {
+        reject("Questions file loaded but QUESTIONS array is empty (check courses file).");
+      }
+    };
+    s.onerror = ()=>{
+      reject(`Cannot load questions for ${courseCode}. Ensure file exists at ${path}`);
+    };
+    document.body.appendChild(s);
+  });
+}
+
+/* when user clicks the "Load Course" button */
+async function loadCourse(){
+  const sel = qs("#courseSelect");
+  if(!sel) { alert("Select a course first."); return; }
+  const c = sel.value;
+  if(!c) { alert("Please choose a course."); return; }
+
+  selectedCourse = c;
+  try{
+    // attempt to load the course's question JS file
+    await loadCourseQuestions(c);
+
+    // reset UI state
+    userAnswers = {};
+    page = 0;
+    qs("#authView").style.display = "none";
+    qs("#courseSection").style.display = "none";
+    qs("#examView").style.display = "flex";
+    qs("#selectedCourseBox").innerHTML = `<strong>${c}</strong> — ${COURSE_LIST[c] || ''}`;
+
+    // start exam
+    buildNav();
+    renderPage();
+    startTimer();
+  } catch(err){
+    alert(err);
+  }
+}
+
+/* logout: reset everything to initial */
+function logout(){
+  // remove loaded questions script if any
+  const old = document.getElementById("qFile");
+  if(old) old.remove();
+  QUESTIONS = [];
+  userAnswers = {};
+  page = 0;
+  selectedCourse = null;
+  clearInterval(timerInterval);
+
+  qs("#authView").style.display = "flex";
+  qs("#courseSection").style.display = "none";
+  qs("#examView").style.display = "none";
+  qs("#logoutBtn").style.display = "none";
+  qs("#courseBox").innerHTML = ""; // empty until logged in
+  qs("#finalResult").innerHTML = "";
+  showMessage("");
+  qs("#matric").value = "";
+  qs("#pass").value = "";
+}
+
+/* ===========================
+   EXAM UI & ENGINE
+   (renderPage, navigation, listeners)
+   =========================== */
+function buildNav(){
+  const nav = qs("#navGrid");
+  nav.innerHTML = "";
+  QUESTIONS.forEach((_,i)=>{
+    const d = document.createElement("div");
+    d.className = "nav-num";
+    d.textContent = i+1;
+    d.onclick = ()=>{ page = Math.floor(i/perPage); renderPage(); };
+    nav.appendChild(d);
+  });
+  updateNav();
+}
+
+function renderPage(){
+  const holder = qs("#questionHolder");
+  holder.innerHTML = "";
+  const start = page*perPage;
+  const end = Math.min(start + perPage, QUESTIONS.length);
+  for(let i=start;i<end;i++){
+    const q = QUESTIONS[i];
+    const card = document.createElement("div");
+    card.className = "question-card";
+    let html = `<div style="font-weight:700;margin-bottom:6px;">Q${i+1}. ${q.question}</div>`;
+    if(q.type === "mcq"){
+      // expect q.options to be object with A..D
+      ['A','B','C','D'].forEach(letter=>{
+        if(q.options && q.options[letter] !== undefined){
+          html += `<label class="option"><input type="radio" name="q${i}" value="${letter}"> (${letter}) ${q.options[letter]}</label>`;
+        }
+      });
+    } else {
+      html += `<input class="fbq" data-i="${i}" value="${userAnswers[i] || ''}" placeholder="Type answer here">`;
+    }
+    card.innerHTML = html;
+    holder.appendChild(card);
+  }
+  attachListeners();
+  updateNav();
+}
+
+function attachListeners(){
+  document.querySelectorAll(".fbq").forEach(f=>{
+    f.oninput = ()=>{ userAnswers[f.dataset.i] = f.value.trim(); updateNav(); };
+  });
+  document.querySelectorAll("input[type=radio]").forEach(r=>{
+    r.onchange = ()=>{ userAnswers[r.name.slice(1)] = r.value; updateNav(); };
+    // pre-check previously selected answers
+    const idx = parseInt(r.name.slice(1));
+    if(userAnswers[idx] && userAnswers[idx] === r.value) r.checked = true;
+  });
+}
+
+function updateNav(){
+  document.querySelectorAll(".nav-num").forEach((n,i)=>{
+    if(userAnswers[i]) n.classList.add("answered");
+    else n.classList.remove("answered");
+  });
+}
+
+/* pager buttons */
+qs("#nextBtn").addEventListener("click", ()=>{
+  if((page+1)*perPage >= QUESTIONS.length){
+    showSubmitModal();
+  } else {
+    page++;
+    renderPage();
+  }
+});
+qs("#prevBtn").addEventListener("click", ()=>{
+  if(page>0) page--;
+  renderPage();
+});
+
+/* timer */
+function startTimer(){
+  clearInterval(timerInterval);
+  let s = timerSeconds;
+  const el = qs("#timer");
+  function tick(){
+    if(s <= 0){
+      clearInterval(timerInterval);
+      finalize();
+      return;
+    }
+    const hh = String(Math.floor(s/3600)).padStart(2,'0');
+    const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    el.textContent = `${hh}:${mm}:${ss}`;
+    s--;
+  }
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+
+/* submit modal & finalize */
+function showSubmitModal(){
+  // build full nav
+  const fn = qs("#fullNav");
+  fn.innerHTML = "";
+  QUESTIONS.forEach((_,i)=>{
+    const d = document.createElement("div");
+    d.className = "nav-num";
+    d.style.width = "34px";
+    d.style.height = "34px";
+    if(userAnswers[i]) d.classList.add("answered");
+    d.textContent = i+1;
+    fn.appendChild(d);
+  });
+  qs("#confirmModal").classList.add("show");
+}
+qs("#cancelSubmit").addEventListener("click", ()=> qs("#confirmModal").classList.remove("show"));
+qs("#confirmSubmit").addEventListener("click", ()=> { qs("#confirmModal").classList.remove("show"); finalize(); });
+
+function finalize(){
+  clearInterval(timerInterval);
+
+  let raw = 0;
+  QUESTIONS.forEach((q,i)=>{
+    const studentAns = (userAnswers[i] || "").toString().trim();
+    if(q.type === "mcq"){
+      // compare letter only (A/B...)
+      if(studentAns.toUpperCase() === (q.answer || "").toString().trim().toUpperCase()){
+        raw++;
+      }
+    } else {
+      if(studentAns.toLowerCase() === (q.answer || "").toString().trim().toLowerCase()){
+        raw++;
+      }
+    }
+  });
+
+  const total = QUESTIONS.length;
+  let converted = null;
+  // if total is 100 convert to 70
+  if(total === 100){
+    converted = Math.round((raw / 100) * 70);
+  }
+
+  let html = `<h3>RESULT SUMMARY</h3>
+    <p><strong>Attempted:</strong> ${Object.keys(userAnswers).length} / ${total}</p>
+    <p><strong>Raw Score:</strong> ${raw} / ${total}</p>`;
+
+  if(converted !== null){
+    html += `<p><strong>Converted Score (over 70):</strong> ${converted} / 70</p>`;
+  } else if(total === 70){
+    html += `<p><strong>Final Score (over 70):</strong> ${raw} / 70</p>`;
+  }
+
+  qs("#finalResult").innerHTML = `<div style="padding:12px;background:#e9fff0;border:1px solid #0e8b3a;border-radius:6px;">${html}</div>`;
+
+  // lock UI
+  qs("#nextBtn").disabled = true;
+  qs("#prevBtn").disabled = true;
+  document.querySelectorAll("input").forEach(i=> i.disabled = true);
+}
+
+/* ===========================
+   Wiring: button handlers
+   =========================== */
+qs("#loginBtn").addEventListener("click", login);
+qs("#signupBtn").addEventListener("click", signUp);
+qs("#loadCourseBtn").addEventListener("click", loadCourse);
+qs("#logoutBtn").addEventListener("click", logout);
+
+/* ===========================
+   Notes for usage
+   ===========================
+ - Course question files expected at: courses/<COURSE>/questions.js
+   Example file should set QUESTIONS = [ ... ].
+ - If you want to use JSON instead, I can provide a fetch-based loader,
+   but browsers block file:// fetch; you'd need to serve files over http(s).
+ - The students map above is demo-only. For real usage you must keep
+   student-course mapping server-side or include them in the single HTML
+   before distribution.
+=========================== */
+</script>
+</body>
+</html>
