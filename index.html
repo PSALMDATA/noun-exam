@@ -123,20 +123,20 @@ const qs = (s)=>document.querySelector(s);
 
 /* demo student "database" (in a real setup this would be server-side) */
 const students = {
-  "nou123456789": { password:"nou123456789", courses:["GST101","MTH101", "GST103","GST102"] },
-  "NOU252202514":     { password:"NOU252202514",     courses:["NSC209","POL111", "NSC221", "NSC219"] },
-  "NOU250341232":     { password:"NOU250341232",     courses:["NSC210", "NSC220"] },
-   "NOU251228266":     { password:"NOU251228266",     courses:["PHY101"] },
-   "NOU252222383":     { password:"NOU252222383",     courses:["GST203","CIT237"] },
-   "nou123456789":     { password:"nou123456789",     courses:["CIT212"] },
+  "nou123456789": { password:"nou123456789", courses:[] },
+  "NOU252202514":     { password:"NOU252202514",     courses:[] },
+  "NOU250341232":     { password:"NOU250341232",     courses:[] },
+   "NOU251228266":     { password:"NOU251228266",     courses:[] },
+   "NOU252222383":     { password:"NOU252222383",     courses:[] },
+   "nou123456789":     { password:"nou123456789",     courses:[] },
    "nou221153197":     { password:"nou221153197",     courses:["CIT212", "GST203", "GST101", "GST202"] },
-    "NOU251202145":     { password:"NOU251202145",     courses:["MTH105", "GST101", "GST103"]},
-    "NOU256639286":    { password:"NOU256639286",     courses:["CIT212", "GST203"] },
-     "NOU240927375":   { password:"NOU240927375",     courses:["GST302"] },
-    "NOU241719990":    { password:"NOU241719990",     courses:["CIT202", "ENT204", "ACC206", "ACC204", "STT206", "GST202"] },
-  "nou211111111":    { password:"nou211111111",     courses:["GST101", "GST103"] },
-    "nou252200048":    { password:"nou252200048",     courses:["GST203", "CIT211", "CIT237"] },
-  "NOU251200862":   { password:"NOU251200862",     courses:["GST101", "GST103"] }
+    "NOU251202145":     { password:"NOU251202145",     courses:[]},
+    "NOU256639286":    { password:"NOU256639286",     courses:[] },
+     "NOU240927375":   { password:"NOU240927375",     courses:[] },
+    "NOU241719990":    { password:"NOU241719990",     courses:[] },
+  "nou211111111":    { password:"nou211111111",     courses:[] },
+    "nou252200048":    { password:"nou252200048",     courses:[] },
+  "NOU251200862":   { password:"NOU251200862",     courses:[] }
 
         };
 
@@ -496,6 +496,7 @@ qs("#logoutBtn").addEventListener("click", logout);
 </script>
 </body>
 </html>
+
 
 
 
