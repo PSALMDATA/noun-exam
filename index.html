@@ -71,19 +71,32 @@ let examStarted = false;
 const qs = s => document.querySelector(s);
 const qsa = s => Array.from(document.querySelectorAll(s));
 const students = {
-  "nou123456789": { password:"nou123456789", name:"Student User", passport:"", courses:["GST101"] },
-  "nou221153197": { password:"nou221153197", name:"Student User", passport:"", courses:["CIT212", "GST203", "GST101", "GST202"] },
-  "NOU252202514": { password:"NOU252202514", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU250341232": { password:"NOU250341232", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU251228266": { password:"NOU251228266", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU252222383": { password:"NOU252222383", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU251202145": { password:"NOU251202145", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU256639286": { password:"NOU256639286", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU240927375": { password:"NOU240927375", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU241719990": { password:"NOU241719990", name:"Student User", passport:"", courses:["GST101"] },
-  "nou211111111": { password:"nou211111111", name:"Student User", passport:"", courses:["GST101"] },
-  "nou252200048": { password:"nou252200048", name:"Student User", passport:"", courses:["GST101"] },
-  "NOU251200862": { password:"NOU251200862", name:"Student User", passport:"", courses:["GST101"] }
+  "NOU261110090": { password:"NOU261110090", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "nou221153197": { password:"nou221153197", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261104060": { password:"NOU261104060", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261110409": { password:"NOU261110409", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261102603": { password:"NOU261102603", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261119853": { password:"NOU261119853", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261100995": { password:"NOU261100995", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU251211326": { password:"NOU251211326", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261108078": { password:"NOU261108078", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU251210900": { password:"NOU251210900", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261105577": { password:"NOU261105577", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261112502": { password:"NOU261112502", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261103344": { password:"NOU261103344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU251211101": { password:"NOU251211101", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261103963": { password:"NOU261103963", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261101622": { password:"NOU261101622", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU261100989": { password:"NOU261100989", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26110344": { password:"NOU261103344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26110334": { password:"NOU26110334", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26103344": { password:"NOU26113344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26113344": { password:"NOU26113344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26103344": { password:"NOU26103344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26110344": { password:"NOU26113344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU26113344": { password:"NOU26103344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU61103344": { password:"NOU21103344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] },
+  "NOU2103344": { password:"NOU26110344", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111"] }
 };
 const COURSE_LIST = { GST101:"Use of English and Communications S", GST202:"Fundamentals of Peace Studies and Conflict Resolution", GST203:"Introduction to Philosophy and Logic", CIT212:"Systems Analysis and Design", MTH101:"Elementary Mathematics I", BIO101:"General Biology I", CHM101:"General Chemistry I" };
 function setAddress(path, tab){ qs('#addressBar').textContent = path; qs('#browserTabTitle').textContent = tab || 'National Open University'; }
