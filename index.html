@@ -62,6 +62,11 @@
 .clear-choice-btn:hover{ color:#d32f2f; }
 </style>
 
+
+<style>
+.attempt-info-70{font-size:13px;color:#666;margin-top:6px}
+</style>
+
 </head>
 <body>
 <button id="examLogoutBtn" class="exam-logout-fixed" type="button">Logout</button>
@@ -74,6 +79,38 @@
 </div>
 <div id="startModal" class="modal"><div class="modal-box"><div class="modal-head"><h2>Start Exam</h2><button class="modal-close" id="closeStartModal">×</button></div><div class="modal-body"><div class="modal-row"><div>Time limit</div><strong id="modalTimeLimit">2 hour</strong></div><p style="max-width:420px;margin:22px auto;text-align:left;line-height:1.55">The quiz has a time limit of <span id="modalTimeText">2 hour</span>. Time will count down from the moment you start your attempt and you must submit before it expires. Are you sure that you wish to start now?</p><div class="modal-actions"><button id="confirmStartExam" class="btn red">Start Exam</button><button id="cancelStartExam" class="btn">Cancel</button></div></div></div></div>
 <div id="submitModal" class="modal"><div class="modal-box"><div class="modal-head"><h2>Submit Exam?</h2><button class="modal-close" id="closeSubmitModal">×</button></div><div class="modal-body"><p>Review your question navigation before final submission. Answered questions are highlighted in green.</p><div id="fullNav" class="nav-grid" style="grid-template-columns:repeat(10,30px);margin:18px auto"></div><div class="modal-actions"><button id="confirmSubmit" class="btn red">Submit All and Finish</button><button id="cancelSubmit" class="btn">Cancel</button></div></div></div></div>
+
+<script>
+/* ===== Fixed random attempt selector ===== */
+const QUESTIONS_PER_ATTEMPT = 70;
+
+function secureRandomInt(max){
+  if(max <= 0) return 0;
+  if(window.crypto && window.crypto.getRandomValues){
+    const arr = new Uint32Array(1);
+    window.crypto.getRandomValues(arr);
+    return arr[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
+function shuffleArrayCopy(arr){
+  const copy = Array.isArray(arr) ? arr.slice() : [];
+  for(let i = copy.length - 1; i > 0; i--){
+    const j = secureRandomInt(i + 1);
+    const temp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = temp;
+  }
+  return copy;
+}
+
+function prepareAttemptQuestions(allQuestions){
+  const shuffled = shuffleArrayCopy(allQuestions);
+  return shuffled.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, shuffled.length));
+}
+</script>
+
 <script>
 let QUESTIONS = [];
 let page = 0;
@@ -147,7 +184,11 @@ function setStudentUI(){ const st = students[currentStudentKey]; const label = `
 function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard(); }
 function renderDashboard(){ const st = students[currentStudentKey]; const box = qs('#registeredCourses'); box.innerHTML = ''; st.courses.forEach(code=>{ const div = document.createElement('div'); div.className = 'course-item'; div.innerHTML = `<span class="course-icon">▹</span><span>${formatCourse(code)}</span>`; div.onclick = () => openCourse(code); box.appendChild(div); }); qs('#sideCourseTitle').textContent = st.courses[0] ? `▰ ${st.courses[0]}` : '▰ Courses'; showView('dashboardView'); }
 function loadCourseQuestions(courseCode){ return new Promise((resolve,reject)=>{ const old = document.getElementById('qFile'); if(old) old.remove(); QUESTIONS = []; const s = document.createElement('script'); s.id = 'qFile'; s.src = `courses/${courseCode}/questions.js?v=${Date.now()}`; s.onload = () => Array.isArray(QUESTIONS) && QUESTIONS.length ? resolve() : reject('Questions file loaded but QUESTIONS is empty.'); s.onerror = () => reject(`Cannot load questions for ${courseCode}. Put the file at courses/${courseCode}/questions.js`); document.body.appendChild(s); }); }
-async function openCourse(code){ selectedCourse = code; try{ await loadCourseQuestions(code); }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
+async function openCourse(code){ selectedCourse = code; try{ 
+    await loadCourseQuestions(code); 
+    // Select only 70 random questions immediately after the full course bank loads.
+    QUESTIONS = prepareAttemptQuestions(QUESTIONS);
+  }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
 function readableTime(){ const h = Math.floor(timerSeconds/3600); const m = Math.floor((timerSeconds%3600)/60); if(h && !m) return `${h} hour${h>1?'s':''}`; if(h) return `${h} hour ${m} minutes`; return `${m} minutes`; }
 function showStartModal(){ qs('#startModal').classList.add('show'); }
 function hideStartModal(){ qs('#startModal').classList.remove('show'); }
@@ -316,60 +357,20 @@ qs('#pass').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); }); qs
 </script>
 
 
-<script>
-/* ===== Random 70-question attempt selector =====
-   Loads all questions from a course file, then randomly selects only 70
-   for the current attempt. If the course has fewer than 70 questions,
-   all available questions will be used. */
-const QUESTIONS_PER_ATTEMPT = 70;
-
-function secureRandomInt(max){
-  if(max <= 0) return 0;
-  if(window.crypto && window.crypto.getRandomValues){
-    const arr = new Uint32Array(1);
-    window.crypto.getRandomValues(arr);
-    return arr[0] % max;
-  }
-  return Math.floor(Math.random() * max);
-}
-
-function shuffleArrayCopy(arr){
-  const copy = Array.isArray(arr) ? arr.slice() : [];
-  for(let i = copy.length - 1; i > 0; i--){
-    const j = secureRandomInt(i + 1);
-    const temp = copy[i];
-    copy[i] = copy[j];
-    copy[j] = temp;
-  }
-  return copy;
-}
-
-function prepareAttemptQuestions(allQuestions){
-  const shuffled = shuffleArrayCopy(allQuestions);
-  return shuffled.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, shuffled.length));
-}
-</script>
-
 
 <script>
 (function(){
-  window.addEventListener('load', function(){
-    if(typeof loadCourse === 'function' && !loadCourse.__random70Patch){
-      const originalLoadCourse = loadCourse;
-      loadCourse = async function(){
-        const result = await originalLoadCourse.apply(this, arguments);
-        if(Array.isArray(QUESTIONS) && QUESTIONS.length > QUESTIONS_PER_ATTEMPT){
-          QUESTIONS = prepareAttemptQuestions(QUESTIONS);
-          if(typeof page !== 'undefined') page = 0;
-          if(typeof userAnswers !== 'undefined') userAnswers = {};
-          if(typeof buildNav === 'function') buildNav();
-          if(typeof renderPage === 'function') renderPage();
-        }
-        return result;
-      };
-      loadCourse.__random70Patch = true;
+  function showAttemptInfo(){
+    var el = document.getElementById('instructionCourse');
+    if(el && !document.getElementById('attemptInfo70')){
+      var div = document.createElement('div');
+      div.id = 'attemptInfo70';
+      div.className = 'attempt-info-70';
+      div.textContent = '70 questions will be randomly selected for this attempt.';
+      el.insertAdjacentElement('afterend', div);
     }
-  });
+  }
+  window.addEventListener('load', function(){ setInterval(showAttemptInfo, 500); });
 })();
 </script>
 
