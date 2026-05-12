@@ -46,6 +46,22 @@
 }
 </style>
 
+
+<style>
+.clear-choice-btn{
+  display:inline-block;
+  margin-top:8px;
+  color:#0b5ea8;
+  background:transparent;
+  border:none;
+  padding:0;
+  font-size:13px;
+  cursor:pointer;
+  text-decoration:underline;
+}
+.clear-choice-btn:hover{ color:#d32f2f; }
+</style>
+
 </head>
 <body>
 <button id="examLogoutBtn" class="exam-logout-fixed" type="button">Logout</button>
@@ -167,6 +183,110 @@ qs('#pass').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); }); qs
     wireExamLogout();
     updateExamLogout();
     setInterval(updateExamLogout, 300);
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function clearStoredAnswer(idx){
+    try { if(typeof userAnswers !== 'undefined') delete userAnswers[idx]; } catch(e){}
+    try { if(window.userAnswers) delete window.userAnswers[idx]; } catch(e){}
+    try { if(typeof updateNav === 'function') updateNav(); } catch(e){}
+    try { if(typeof saveProgress === 'function') saveProgress(); } catch(e){}
+  }
+
+  function attachClearChoiceButtons(){
+    document.querySelectorAll('input[type="radio"]').forEach(function(radio){
+      var name = radio.name;
+      if(!name || !name.startsWith('q')) return;
+      var idx = name.slice(1);
+      var group = Array.from(document.querySelectorAll('input[type="radio"][name="'+name+'"]'));
+      if(!group.length) return;
+
+      var parent = group[group.length - 1].closest('.question-card, .q-body, .question-body, .question-content');
+      if(!parent){
+        parent = group[group.length - 1].parentElement;
+        while(parent && parent.parentElement && !parent.className.toString().toLowerCase().includes('question')){
+          parent = parent.parentElement;
+        }
+      }
+      if(!parent || parent.querySelector('.clear-choice-btn[data-clear="'+idx+'"]')) return;
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'clear-choice-btn';
+      btn.setAttribute('data-clear', idx);
+      btn.textContent = 'Clear my choice';
+      btn.onclick = function(){
+        group.forEach(function(item){ item.checked = false; });
+        clearStoredAnswer(idx);
+      };
+      parent.appendChild(btn);
+    });
+
+    document.querySelectorAll('.clear-choice-btn').forEach(function(btn){
+      if(btn.dataset.wired === '1') return;
+      btn.dataset.wired = '1';
+      btn.onclick = function(){
+        var idx = btn.getAttribute('data-clear');
+        document.querySelectorAll('input[type="radio"][name="q'+idx+'"]').forEach(function(r){ r.checked = false; });
+        clearStoredAnswer(idx);
+      };
+    });
+  }
+
+  window.addEventListener('load', function(){
+    attachClearChoiceButtons();
+    setInterval(attachClearChoiceButtons, 300);
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function currentIsLastPage(){
+    try{
+      var total = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS)) ? QUESTIONS.length : 0;
+      var pp = (typeof perPage !== 'undefined') ? perPage : 5;
+      var pg = (typeof page !== 'undefined') ? page : 0;
+      return total > 0 && ((pg + 1) * pp >= total);
+    }catch(e){ return true; }
+  }
+
+  function updateSubmitButtonVisibility(){
+    var isLast = currentIsLastPage();
+    var labels = ['Submit All and Finish','Submit all and finish','Submit Exam','Finish attempt'];
+    document.querySelectorAll('button, a, input[type="button"], input[type="submit"]').forEach(function(el){
+      var txt = (el.textContent || el.value || '').trim();
+      var isSubmitButton = labels.some(function(label){ return txt.toLowerCase() === label.toLowerCase(); });
+      if(!isSubmitButton) return;
+
+      if(el.closest('.modal') || el.closest('#confirmModal') || el.closest('#reviewView') || el.closest('#resultView') || el.closest('.review-page') || el.closest('.result-page')) return;
+
+      el.style.display = isLast ? '' : 'none';
+    });
+  }
+
+  window.addEventListener('load', function(){
+    updateSubmitButtonVisibility();
+
+    try{
+      var oldRender = window.renderPage;
+      if(typeof oldRender === 'function' && !oldRender.__submitPatch){
+        var patched = function(){
+          var result = oldRender.apply(this, arguments);
+          setTimeout(updateSubmitButtonVisibility, 0);
+          return result;
+        };
+        patched.__submitPatch = true;
+        window.renderPage = patched;
+      }
+    }catch(e){}
+
+    setInterval(updateSubmitButtonVisibility, 300);
   });
 })();
 </script>
