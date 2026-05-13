@@ -92,8 +92,40 @@
 }
 </style>
 
+
+<style>
+.exam-toast{
+  position:fixed;
+  top:18px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#1b5e20;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:6px;
+  z-index:999999;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+  display:none;
+  font-weight:600;
+  min-width:260px;
+  text-align:center;
+}
+.exam-toast.show{
+  display:block;
+  animation:fadeInOut 4s ease forwards;
+}
+@keyframes fadeInOut{
+  0%{opacity:0;transform:translateX(-50%) translateY(-8px);}
+  10%{opacity:1;transform:translateX(-50%) translateY(0);}
+  85%{opacity:1;}
+  100%{opacity:0;}
+}
+</style>
+
 </head>
 <body>
+<div id="examToast" class="exam-toast"></div>
+
 <button id="examLogoutBtn" class="exam-logout-fixed" type="button">Logout</button>
 
 <div class="browser-shell">
@@ -205,7 +237,7 @@ const students = {
   "NOU261116422": { password:"NOU261116422", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
   "NOU251211079": { password:"NOU251211079", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
   "NOU261102511": { password:"NOU261102511", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
-  "nou261104619": { password:"AKINNOLA", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105"] },
+  "nou261104619": { password:"AKINNOLA", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "ENG113", "ENG121", "ENG141", "ENG151", "ENG161", "ENG181", "FRE101"] },
   "NOU261109064": { password:"NOU261109064", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] }
 };
 const COURSE_LIST = { GST101:"Use of English and Communications S", GST202:"Fundamentals of Peace Studies and Conflict Resolution", GST203:"Introduction to Philosophy and Logic", CIT212:"Systems Analysis and Design", MTH101:"Elementary Mathematics I", BIO101:"General Biology I", CHM101:"General Chemistry I" };
@@ -214,13 +246,13 @@ function findStudentKey(input){ const x=input.trim().toLowerCase(); return Objec
 function showView(name){ ['dashboardView','instructionView','examView'].forEach(id=>qs('#'+id).classList.add('hidden')); qs('#'+name).classList.remove('hidden'); qs('#siteFooter').classList.toggle('hidden', name === 'examView'); }
 function formatCourse(code){ return `${COURSE_LIST[code] || code} (${code})`; }
 function setStudentUI(){ const st = students[currentStudentKey]; const label = `${st.name || 'Student User'} (${currentStudentKey.toUpperCase()})`; qs('#topStudentName').textContent = label; qs('#navStudentName').textContent = label; if(st.passport){ qs('#studentPassport').outerHTML = `<img id="studentPassport" class="passport" src="${st.passport}" alt="Passport">`; } }
-function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard(); }
+function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard(); setTimeout(()=>restoreAttemptState(),300); }
 function renderDashboard(){ const st = students[currentStudentKey]; const box = qs('#registeredCourses'); box.innerHTML = ''; st.courses.forEach(code=>{ const div = document.createElement('div'); div.className = 'course-item'; div.innerHTML = `<span class="course-icon">▹</span><span>${formatCourse(code)}</span>`; div.onclick = () => openCourse(code); box.appendChild(div); }); qs('#sideCourseTitle').textContent = st.courses[0] ? `▰ ${st.courses[0]}` : '▰ Courses'; showView('dashboardView'); }
 function loadCourseQuestions(courseCode){ return new Promise((resolve,reject)=>{ const old = document.getElementById('qFile'); if(old) old.remove(); QUESTIONS = []; const s = document.createElement('script'); s.id = 'qFile'; s.src = `courses/${courseCode}/questions.js?v=${Date.now()}`; s.onload = () => Array.isArray(QUESTIONS) && QUESTIONS.length ? resolve() : reject('Questions file loaded but QUESTIONS is empty.'); s.onerror = () => reject(`Cannot load questions for ${courseCode}. Put the file at courses/${courseCode}/questions.js`); document.body.appendChild(s); }); }
 async function openCourse(code){ selectedCourse = code; try{ 
     await loadCourseQuestions(code); 
     // Select only 70 random questions immediately after the full course bank loads.
-    QUESTIONS = prepareAttemptQuestions(QUESTIONS);
+    QUESTIONS = shuffleQuestionOptions(prepareAttemptQuestions(QUESTIONS));
   }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; updateAttemptDateDisplays(); qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
 function readableTime(){ const h = Math.floor(timerSeconds/3600); const m = Math.floor((timerSeconds%3600)/60); if(h && !m) return `${h} hour${h>1?'s':''}`; if(h) return `${h} hour ${m} minutes`; return `${m} minutes`; }
 function showStartModal(){ qs('#startModal').classList.add('show'); }
@@ -230,7 +262,54 @@ function buildNav(){ const nav = qs('#navGrid'); nav.innerHTML = ''; QUESTIONS.f
 function renderPage(){ const holder = qs('#questionHolder'); holder.classList.remove('submitted-review'); holder.innerHTML = ''; qs('#prevBtn').style.display = ''; qs('#nextBtn').style.display = ''; const sb=qs('#submitBtn'); if(sb) sb.style.display=''; const start = page*perPage, end = Math.min(start+perPage, QUESTIONS.length); for(let i=start;i<end;i++){ const q = QUESTIONS[i]; const row = document.createElement('div'); row.className='question-row'; const ans = userAnswers[i] || ''; let body = `<div class="q-text">${escapeHtml(q.question || '')}</div>`; if((q.type || '').toLowerCase() === 'mcq'){ ['A','B','C','D','E'].forEach(letter=>{ if(q.options && q.options[letter] !== undefined){ body += `<label class="option"><input type="radio" name="q${i}" value="${letter}" ${ans===letter?'checked':''}> ${escapeHtml(q.options[letter])}</label>`; } }); }else{ body += `<input class="fill-input" data-i="${i}" value="${escapeAttr(ans)}" placeholder="Type your answer here">`; } row.innerHTML = `<div class="q-meta"><strong>Question ${i+1}</strong><span>Not yet answered</span><br><span>Marked out of 1.00</span></div><div class="q-card">${body}</div>`; holder.appendChild(row); } qs('#prevBtn').disabled = page === 0; qs('#nextBtn').textContent = end >= QUESTIONS.length ? 'Finish attempt...' : 'Next page'; attachAnswerEvents(); updateNav(); }
 function attachAnswerEvents(){ qsa('input[type=radio]').forEach(r=>{ r.onchange=()=>{ userAnswers[Number(r.name.slice(1))]=r.value; updateNav(); }; }); qsa('.fill-input').forEach(f=>{ f.oninput=()=>{ userAnswers[Number(f.dataset.i)] = f.value.trim(); updateNav(); }; }); }
 function updateNav(){ qsa('#navGrid .nav-num').forEach((n,i)=>{ n.classList.toggle('answered', !!userAnswers[i]); const s=page*perPage, e=s+perPage; n.classList.toggle('current', i>=s && i<e); }); }
-function startTimer(){ clearInterval(timerInterval); let s = timerSeconds; const el = qs('#timer'); const tick = () => { if(s <= 0){ el.textContent = 'Time left 00:00:00'; clearInterval(timerInterval); finalize(); return; } const hh=String(Math.floor(s/3600)).padStart(2,'0'); const mm=String(Math.floor((s%3600)/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); el.textContent = `Time left ${hh}:${mm}:${ss}`; s--; }; tick(); timerInterval=setInterval(tick,1000); }
+function startTimer(){ 
+  clearInterval(timerInterval); 
+  let s = timerSeconds; 
+  window.remainingSeconds = s;
+  const el = qs('#timer'); 
+
+  let warned15 = false;
+  let warnedLastPage = false;
+
+  const tick = () => { 
+    window.remainingSeconds = s;
+
+    if(s <= 0){ 
+      el.textContent = 'Time left 00:00:00'; 
+      clearInterval(timerInterval); 
+      showToast('Time elapsed. Submitting attempt...');
+      finalize(); 
+      return; 
+    } 
+
+    if(s === 900 && !warned15){
+      warned15 = true;
+      showToast('You have 15 minutes left.');
+    }
+
+    const unanswered = QUESTIONS.length - Object.keys(userAnswers).length;
+    if(unanswered > 0 && s % 120 === 0){
+      showToast(`You still have ${unanswered} unanswered question(s).`);
+    }
+
+    if(((page + 1) * perPage >= QUESTIONS.length) && !warnedLastPage){
+      warnedLastPage = true;
+      showToast('You are on the last page.');
+    }
+
+    const hh=String(Math.floor(s/3600)).padStart(2,'0'); 
+    const mm=String(Math.floor((s%3600)/60)).padStart(2,'0'); 
+    const ss=String(s%60).padStart(2,'0'); 
+    el.textContent = `Time left ${hh}:${mm}:${ss}`; 
+
+    saveAttemptState();
+
+    s--; 
+  }; 
+
+  tick(); 
+  timerInterval=setInterval(tick,1000); 
+}
 function showSubmitModal(){ const fn=qs('#fullNav'); fn.innerHTML=''; QUESTIONS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='nav-num'; d.textContent=i+1; if(userAnswers[i]) d.classList.add('answered'); fn.appendChild(d); }); qs('#submitModal').classList.add('show'); }
 function hideSubmitModal(){ qs('#submitModal').classList.remove('show'); }
 
@@ -301,7 +380,7 @@ function finalize(){
     <p><strong>Percentage:</strong> ${Math.round((raw / QUESTIONS.length) * 100)}%</p>
     <p class="small-muted">Corrections are shown only under the questions you failed.</p>
   </div>`; 
-  window.scrollTo({top:0, behavior:'smooth'});
+  localStorage.removeItem('nounExamAttempt'); window.scrollTo({top:0, behavior:'smooth'});
 }
 function escapeHtml(str){ return String(str).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function escapeAttr(str){ return escapeHtml(str).replace(/'/g,'&#39;'); }
@@ -499,6 +578,124 @@ function updateAttemptDateDisplays(){
 window.addEventListener('load', function(){
   updateAttemptDateDisplays();
   setInterval(updateAttemptDateDisplays, 60000);
+});
+</script>
+
+
+<script>
+/* ===== Warning notifications ===== */
+function showToast(msg){
+  const t = document.getElementById('examToast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+}
+
+/* ===== Random option shuffling ===== */
+function shuffleOptions(question){
+  if(!question || !question.options) return question;
+
+  const letters = Object.keys(question.options);
+  const shuffled = letters.slice();
+
+  for(let i = shuffled.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const originalAnswer = question.answer;
+  const originalText = question.options[originalAnswer];
+
+  const newOptions = {};
+  const newLetters = ['A','B','C','D','E'];
+
+  shuffled.forEach((oldLetter, idx)=>{
+    newOptions[newLetters[idx]] = question.options[oldLetter];
+  });
+
+  let newAnswer = originalAnswer;
+  Object.keys(newOptions).forEach(letter=>{
+    if(newOptions[letter] === originalText){
+      newAnswer = letter;
+    }
+  });
+
+  return {
+    ...question,
+    options:newOptions,
+    answer:newAnswer
+  };
+}
+
+function shuffleQuestionOptions(questionArray){
+  return questionArray.map(q=>{
+    if((q.type || '').toLowerCase() === 'mcq'){
+      return shuffleOptions(q);
+    }
+    return q;
+  });
+}
+
+/* ===== Resume attempt ===== */
+function saveAttemptState(){
+  try{
+    const state = {
+      selectedCourse,
+      userAnswers,
+      page,
+      examStarted,
+      timerRemaining: window.remainingSeconds || timerSeconds,
+      QUESTIONS
+    };
+    localStorage.setItem('nounExamAttempt', JSON.stringify(state));
+  }catch(e){}
+}
+
+function restoreAttemptState(){
+  try{
+    const raw = localStorage.getItem('nounExamAttempt');
+    if(!raw) return false;
+
+    const state = JSON.parse(raw);
+    if(!state || !state.examStarted) return false;
+
+    if(!confirm('Resume your previous exam attempt?')){
+      localStorage.removeItem('nounExamAttempt');
+      return false;
+    }
+
+    selectedCourse = state.selectedCourse;
+    userAnswers = state.userAnswers || {};
+    page = state.page || 0;
+    QUESTIONS = state.QUESTIONS || [];
+    examStarted = true;
+
+    if(state.timerRemaining){
+      timerSeconds = state.timerRemaining;
+    }
+
+    qs('#sideCourseTitle').textContent = `▰ ${selectedCourse}`;
+    qs('#crumbCourse').textContent = selectedCourse;
+    qs('#examCrumbCourse').textContent = selectedCourse;
+
+    showView('examView');
+    buildNav();
+    renderPage();
+    startTimer();
+
+    showToast('Previous attempt restored.');
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+window.addEventListener('beforeunload', function(){
+  if(typeof examStarted !== 'undefined' && examStarted){
+    saveAttemptState();
+  }
 });
 </script>
 
