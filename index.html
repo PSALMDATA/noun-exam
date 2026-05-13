@@ -67,6 +67,31 @@
 .attempt-info-70{font-size:13px;color:#666;margin-top:6px}
 </style>
 
+
+<style>
+.correction-btn{
+  display:inline-block;
+  margin-top:10px;
+  background:#fff3cd;
+  color:#7a4b00;
+  border:1px solid #e0b84f;
+  border-radius:4px;
+  padding:7px 10px;
+  font-size:13px;
+  font-weight:600;
+}
+.correction-btn strong{color:#b00020}
+.submitted-review .question-row{
+  opacity:1;
+}
+.submitted-review input{
+  pointer-events:none;
+}
+.summary-box{
+  margin-bottom:18px;
+}
+</style>
+
 </head>
 <body>
 <button id="examLogoutBtn" class="exam-logout-fixed" type="button">Logout</button>
@@ -115,7 +140,7 @@ function prepareAttemptQuestions(allQuestions){
 let QUESTIONS = [];
 let page = 0;
 const perPage = 5;
-let timerSeconds = 2 * 60 * 60;
+let timerSeconds = 90 * 60;
 let timerInterval = null;
 let selectedCourse = null;
 let currentStudentKey = null;
@@ -196,19 +221,88 @@ async function openCourse(code){ selectedCourse = code; try{
     await loadCourseQuestions(code); 
     // Select only 70 random questions immediately after the full course bank loads.
     QUESTIONS = prepareAttemptQuestions(QUESTIONS);
-  }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
+  }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; updateAttemptDateDisplays(); qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
 function readableTime(){ const h = Math.floor(timerSeconds/3600); const m = Math.floor((timerSeconds%3600)/60); if(h && !m) return `${h} hour${h>1?'s':''}`; if(h) return `${h} hour ${m} minutes`; return `${m} minutes`; }
 function showStartModal(){ qs('#startModal').classList.add('show'); }
 function hideStartModal(){ qs('#startModal').classList.remove('show'); }
-function beginExam(){ hideStartModal(); examStarted = true; page = 0; setAddress(`172.16.0.2/exams/Uned/quiz/attempt.php?attempt=${Date.now()}&cmid=${selectedCourse}`, `${selectedCourse}: ${selectedCourse}`); showView('examView'); buildNav(); renderPage(); startTimer(); }
+function beginExam(){ hideStartModal(); updateAttemptDateDisplays(); examStarted = true; page = 0; setAddress(`172.16.0.2/exams/Uned/quiz/attempt.php?attempt=${Date.now()}&cmid=${selectedCourse}`, `${selectedCourse}: ${selectedCourse}`); showView('examView'); buildNav(); renderPage(); startTimer(); }
 function buildNav(){ const nav = qs('#navGrid'); nav.innerHTML = ''; QUESTIONS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='nav-num'; d.textContent=i+1; d.onclick=()=>{ page=Math.floor(i/perPage); renderPage(); }; nav.appendChild(d); }); updateNav(); }
-function renderPage(){ const holder = qs('#questionHolder'); holder.innerHTML = ''; const start = page*perPage, end = Math.min(start+perPage, QUESTIONS.length); for(let i=start;i<end;i++){ const q = QUESTIONS[i]; const row = document.createElement('div'); row.className='question-row'; const ans = userAnswers[i] || ''; let body = `<div class="q-text">${escapeHtml(q.question || '')}</div>`; if((q.type || '').toLowerCase() === 'mcq'){ ['A','B','C','D','E'].forEach(letter=>{ if(q.options && q.options[letter] !== undefined){ body += `<label class="option"><input type="radio" name="q${i}" value="${letter}" ${ans===letter?'checked':''}> ${escapeHtml(q.options[letter])}</label>`; } }); }else{ body += `<input class="fill-input" data-i="${i}" value="${escapeAttr(ans)}" placeholder="Type your answer here">`; } row.innerHTML = `<div class="q-meta"><strong>Question ${i+1}</strong><span>Not yet answered</span><br><span>Marked out of 1.00</span></div><div class="q-card">${body}</div>`; holder.appendChild(row); } qs('#prevBtn').disabled = page === 0; qs('#nextBtn').textContent = end >= QUESTIONS.length ? 'Finish attempt...' : 'Next page'; attachAnswerEvents(); updateNav(); }
+function renderPage(){ const holder = qs('#questionHolder'); holder.classList.remove('submitted-review'); holder.innerHTML = ''; qs('#prevBtn').style.display = ''; qs('#nextBtn').style.display = ''; const sb=qs('#submitBtn'); if(sb) sb.style.display=''; const start = page*perPage, end = Math.min(start+perPage, QUESTIONS.length); for(let i=start;i<end;i++){ const q = QUESTIONS[i]; const row = document.createElement('div'); row.className='question-row'; const ans = userAnswers[i] || ''; let body = `<div class="q-text">${escapeHtml(q.question || '')}</div>`; if((q.type || '').toLowerCase() === 'mcq'){ ['A','B','C','D','E'].forEach(letter=>{ if(q.options && q.options[letter] !== undefined){ body += `<label class="option"><input type="radio" name="q${i}" value="${letter}" ${ans===letter?'checked':''}> ${escapeHtml(q.options[letter])}</label>`; } }); }else{ body += `<input class="fill-input" data-i="${i}" value="${escapeAttr(ans)}" placeholder="Type your answer here">`; } row.innerHTML = `<div class="q-meta"><strong>Question ${i+1}</strong><span>Not yet answered</span><br><span>Marked out of 1.00</span></div><div class="q-card">${body}</div>`; holder.appendChild(row); } qs('#prevBtn').disabled = page === 0; qs('#nextBtn').textContent = end >= QUESTIONS.length ? 'Finish attempt...' : 'Next page'; attachAnswerEvents(); updateNav(); }
 function attachAnswerEvents(){ qsa('input[type=radio]').forEach(r=>{ r.onchange=()=>{ userAnswers[Number(r.name.slice(1))]=r.value; updateNav(); }; }); qsa('.fill-input').forEach(f=>{ f.oninput=()=>{ userAnswers[Number(f.dataset.i)] = f.value.trim(); updateNav(); }; }); }
 function updateNav(){ qsa('#navGrid .nav-num').forEach((n,i)=>{ n.classList.toggle('answered', !!userAnswers[i]); const s=page*perPage, e=s+perPage; n.classList.toggle('current', i>=s && i<e); }); }
 function startTimer(){ clearInterval(timerInterval); let s = timerSeconds; const el = qs('#timer'); const tick = () => { if(s <= 0){ el.textContent = 'Time left 00:00:00'; clearInterval(timerInterval); finalize(); return; } const hh=String(Math.floor(s/3600)).padStart(2,'0'); const mm=String(Math.floor((s%3600)/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); el.textContent = `Time left ${hh}:${mm}:${ss}`; s--; }; tick(); timerInterval=setInterval(tick,1000); }
 function showSubmitModal(){ const fn=qs('#fullNav'); fn.innerHTML=''; QUESTIONS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='nav-num'; d.textContent=i+1; if(userAnswers[i]) d.classList.add('answered'); fn.appendChild(d); }); qs('#submitModal').classList.add('show'); }
 function hideSubmitModal(){ qs('#submitModal').classList.remove('show'); }
-function finalize(){ hideSubmitModal(); clearInterval(timerInterval); let raw=0; QUESTIONS.forEach((q,i)=>{ const a=(userAnswers[i] || '').toString().trim(); const correct=(q.answer || '').toString().trim(); if((q.type || '').toLowerCase()==='mcq'){ if(a.toUpperCase()===correct.toUpperCase()) raw++; }else if(a.toLowerCase()===correct.toLowerCase()) raw++; }); qsa('input,button').forEach(el=>{ if(!['loginBtn'].includes(el.id)) el.disabled=true; }); qs('#finalResult').innerHTML = `<div class="summary-box"><h2>Attempt submitted</h2><p><strong>Attempted:</strong> ${Object.keys(userAnswers).length} / ${QUESTIONS.length}</p><p><strong>Raw Score:</strong> ${raw} / ${QUESTIONS.length}</p></div>`; }
+
+function isCorrectAnswer(q, i){
+  const a = (userAnswers[i] || '').toString().trim();
+  const correct = (q.answer || '').toString().trim();
+  if((q.type || '').toLowerCase() === 'mcq'){
+    return a.toUpperCase() === correct.toUpperCase();
+  }
+  return a.toLowerCase() === correct.toLowerCase();
+}
+function getCorrectAnswerText(q){
+  const correct = (q.answer || '').toString().trim();
+  if((q.type || '').toLowerCase() === 'mcq' && q.options && q.options[correct] !== undefined){
+    return correct + '. ' + q.options[correct];
+  }
+  return correct;
+}
+function renderSubmittedCorrections(){
+  const holder = qs('#questionHolder');
+  holder.innerHTML = '';
+  holder.classList.add('submitted-review');
+  QUESTIONS.forEach((q,i)=>{
+    const row = document.createElement('div');
+    row.className='question-row';
+    const ans = userAnswers[i] || '';
+    const correct = isCorrectAnswer(q,i);
+    let body = `<div class="q-text">${escapeHtml(q.question || '')}</div>`;
+    if((q.type || '').toLowerCase() === 'mcq'){
+      ['A','B','C','D','E'].forEach(letter=>{
+        if(q.options && q.options[letter] !== undefined){
+          body += `<label class="option"><input disabled type="radio" name="reviewq${i}" value="${letter}" ${ans===letter?'checked':''}> ${escapeHtml(q.options[letter])}</label>`;
+        }
+      });
+    }else{
+      body += `<input disabled class="fill-input" value="${escapeAttr(ans)}" placeholder="Not answered">`;
+    }
+    if(!correct){
+      body += `<div class="correction-btn">Correction: <strong>${escapeHtml(getCorrectAnswerText(q))}</strong></div>`;
+    }
+    row.innerHTML = `<div class="q-meta"><strong>Question ${i+1}</strong><span>${correct ? 'Correct' : 'Incorrect'}</span><br><span>Marked out of 1.00</span></div><div class="q-card">${body}</div>`;
+    holder.appendChild(row);
+  });
+  qs('#prevBtn').style.display = 'none';
+  qs('#nextBtn').style.display = 'none';
+  const sub = qs('#submitBtn');
+  if(sub) sub.style.display = 'none';
+  updateNav();
+}
+
+function finalize(){ 
+  hideSubmitModal(); 
+  clearInterval(timerInterval); 
+  let raw=0; 
+  QUESTIONS.forEach((q,i)=>{ if(isCorrectAnswer(q,i)) raw++; }); 
+
+  qsa('input,button').forEach(el=>{
+    if(!['loginBtn','examLogoutBtn'].includes(el.id)) el.disabled=true;
+  }); 
+
+  renderSubmittedCorrections();
+
+  qs('#finalResult').innerHTML = `<div class="summary-box">
+    <h2>Attempt submitted</h2>
+    <p><strong>Date:</strong> ${nounCurrentAttemptDate()}</p>
+    <p><strong>Attempted:</strong> ${Object.keys(userAnswers).length} / ${QUESTIONS.length}</p>
+    <p><strong>Score:</strong> ${raw} / ${QUESTIONS.length}</p>
+    <p><strong>Percentage:</strong> ${Math.round((raw / QUESTIONS.length) * 100)}%</p>
+    <p class="small-muted">Corrections are shown only under the questions you failed.</p>
+  </div>`; 
+  window.scrollTo({top:0, behavior:'smooth'});
+}
 function escapeHtml(str){ return String(str).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function escapeAttr(str){ return escapeHtml(str).replace(/'/g,'&#39;'); }
 qs('#loginBtn').onclick = login; qs('#startAttemptBtn').onclick = showStartModal; qs('#closeStartModal').onclick = hideStartModal; qs('#cancelStartExam').onclick = hideStartModal; qs('#confirmStartExam').onclick = beginExam; qs('#prevBtn').onclick = () => { if(page>0){ page--; renderPage(); } }; qs('#nextBtn').onclick = () => { if((page+1)*perPage >= QUESTIONS.length) showSubmitModal(); else { page++; renderPage(); } }; qs('#submitBtn').onclick = showSubmitModal; qs('#closeSubmitModal').onclick = hideSubmitModal; qs('#cancelSubmit').onclick = hideSubmitModal; qs('#confirmSubmit').onclick = finalize; qs('#sideMyCourses').onclick = () => { if(!examStarted) renderDashboard(); };
@@ -380,6 +474,32 @@ qs('#pass').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); }); qs
   }
   window.addEventListener('load', function(){ setInterval(showAttemptInfo, 500); });
 })();
+</script>
+
+
+<script>
+function nounCurrentAttemptDate(){
+  return new Date().toLocaleDateString('en-GB', {
+    weekday:'long',
+    year:'numeric',
+    month:'long',
+    day:'numeric'
+  });
+}
+function updateAttemptDateDisplays(){
+  var text = nounCurrentAttemptDate();
+  ['attemptDate','instructionDate','examDate','modalDate'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = text;
+  });
+  document.querySelectorAll('[data-current-date]').forEach(function(el){
+    el.textContent = text;
+  });
+}
+window.addEventListener('load', function(){
+  updateAttemptDateDisplays();
+  setInterval(updateAttemptDateDisplays, 60000);
+});
 </script>
 
 </body>
