@@ -44,6 +44,61 @@ QUESTIONS = [
   },
   "answer": "noise"
 },
+  {
+  "question": "GIS ____________.",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "Geographical Information System"
+},
+  {
+  "question": "What is the root word in Examination?",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "examine"
+},
+   {
+  "question": "What is the suffix of jailed?",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "-ed"
+},
+  {
+  "question": "What is the suffix of Political?",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "-al"
+},
+  {
+  "question": "What is the root word in UNFAITHFULNESS?",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "faith"
+},
 {
   "question": "An essay that gives vivid details about a person, place or thing is known as a ______ essay.",
   "type": "mcq",
