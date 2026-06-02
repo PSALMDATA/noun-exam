@@ -77,6 +77,17 @@ QUESTIONS = [
   },
   "answer": "-ed"
 },
+   {
+  "question": "What is the suffix of boys?",
+  "type": "fill",
+  "options": {
+    "A": "",
+    "B": "",
+    "C": "",
+    "D": ""
+  },
+  "answer": "-s"
+},
   {
   "question": "What is the suffix of Political?",
   "type": "fill",
