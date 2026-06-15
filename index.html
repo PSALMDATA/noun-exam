@@ -327,7 +327,7 @@ async function openCourse(code){ selectedCourse = code; try{
   }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; updateAttemptDateDisplays(); qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
 
 function getCourseUnits(code){ return COURSE_META[code]?.units || 2; }
-function getCourseTitle(code){ return COURSE_META[code]?.title || COURSE_LIST[code] || code; }
+function getCourseTitle(code){ return COURSE_META[code]?.title || code; }
 function getExamQuestionCount(code){ return getCourseUnits(code) >= 3 ? 100 : 70; }
 function convertScoreTo70(raw,total,code){ return getCourseUnits(code) >= 3 ? Math.round((raw/total)*70) : raw; }
 function formatSubmitDate(){ return new Date().toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true}); }
