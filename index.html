@@ -122,6 +122,17 @@
 }
 </style>
 
+
+<style>
+.result-card{border:1px solid #ddd;background:#fff;padding:22px 28px 34px;margin:20px 0}
+.result-title{color:var(--noun-red);font-size:22px;font-weight:400;margin:18px 0 10px}
+.result-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.result-table thead th{background:var(--noun-green);color:#fff;padding:11px 10px;text-align:left;font-weight:700}
+.result-table tbody td{background:#f7f7f7;border-bottom:1px solid #ececec;padding:13px 10px;vertical-align:top}
+.result-final-grade{color:var(--noun-red);text-align:center;font-size:23px;font-weight:400;margin:28px 0 24px;line-height:1.25}
+.result-no-more{text-align:center;color:#555;font-size:13px;margin-top:18px}
+.result-small{color:#555;font-size:12px;line-height:1.5}
+</style>
 </head>
 <body>
 <div id="examToast" class="exam-toast"></div>
@@ -162,10 +173,7 @@ function shuffleArrayCopy(arr){
   return copy;
 }
 
-function prepareAttemptQuestions(allQuestions){
-  const shuffled = shuffleArrayCopy(allQuestions);
-  return shuffled.slice(0, Math.min(QUESTIONS_PER_ATTEMPT, shuffled.length));
-}
+function prepareAttemptQuestions(allQuestions,count){ const shuffled=shuffleArrayCopy(allQuestions); const totalToShow=count||QUESTIONS_PER_ATTEMPT; return shuffled.slice(0, Math.min(totalToShow, shuffled.length)); }
 </script>
 
 <script>
@@ -181,7 +189,7 @@ let examStarted = false;
 const qs = s => document.querySelector(s);
 const qsa = s => Array.from(document.querySelectorAll(s));
 const students = {
-  "NOU261110090": { password:"NOU261110090", name:"Student User", passport:"", courses:["GST103", "NOU107", "GST101", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
+    "NOU261110090": { password:"NOU261110090", name:"Student User", passport:"", courses:["GST103", "NOU107", "GST101", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
   "nou251207138": { password:"nou251207138", name:"Student User", passport:"", courses:["GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121"] },
   "NOU245051770": { password:"NOU245051770", name:"Student User", passport:"", courses:["GST103", "NOU107", "GST101", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] },
   "Olajumoke@53": { password:"titi@12", name:"Student User", passport:"", courses:["GST103", "NOU107", "GST101", "GST105", "ENG151", "EDU111", "ECE121", "ECE113", "PED121"] },
@@ -278,11 +286,30 @@ const students = {
   "NOU261111461": { password:"NOU261111461", name:"Student User", passport:"", courses:["GST101"] },
   "NOU261109064": { password:"NOU261109064", name:"Student User", passport:"", courses:["NOU107", "GST101", "GST103", "GST105", "MAC113", "MAC117", "MAC115", "MAC111", "MAC121", "CSS111", "JLS111", "ENG121"] }
 };
-const COURSE_LIST = { GST101:"Use of English and Communications S", GST202:"Fundamentals of Peace Studies and Conflict Resolution", GST203:"Introduction to Philosophy and Logic", CIT212:"Systems Analysis and Design", MTH101:"Elementary Mathematics I", BIO101:"General Biology I", CHM101:"General Chemistry I" };
+const COURSE_META = {
+  GST101:{title:"Use of English and Communications S",units:2},
+  GST103:{title:"Computer Fundamentals",units:2},
+  GST105:{title:"History and Philosophy of Science",units:2},
+  NOU107:{title:"A Study Guide for the Distance Learner",units:2},
+  GST202:{title:"Fundamentals of Peace Studies and Conflict Resolution",units:2},
+  GST203:{title:"Introduction to Philosophy and Logic",units:2},
+  CIT212:{title:"Systems Analysis and Design",units:3},
+  MTH101:{title:"Elementary Mathematics I",units:3},
+  MAC121:{title:"Introduction to news writing and reporting",units:3},
+  MAC113:{title:"HISTORY OF NIGERIAN MASS MEDIA",units:2},
+  MAC117:{title:"Writing For Mass Media I",units:2},
+  MAC115:{title:"African Communication Systems I",units:2},
+  MAC111:{title:"introduction to mass communication",units:3},
+  BIO101:{title:"General Biology I",units:2},
+  CHM101:{title:"General Chemistry I",units:2},
+  MTH282:{title:"mathematical methods 11",units:3},
+  CSS242:{title:"MEASUREMENTS AND PATTERN",units:3}
+};
+
 function setAddress(path, tab){ qs('#addressBar').textContent = path; qs('#browserTabTitle').textContent = tab || 'National Open University'; }
 function findStudentKey(input){ const x=input.trim().toLowerCase(); return Object.keys(students).find(k=>k.toLowerCase()===x) || null; }
 function showView(name){ ['dashboardView','instructionView','examView'].forEach(id=>qs('#'+id).classList.add('hidden')); qs('#'+name).classList.remove('hidden'); qs('#siteFooter').classList.toggle('hidden', name === 'examView'); }
-function formatCourse(code){ return `${COURSE_LIST[code] || code} (${code})`; }
+function formatCourse(code){ return `${getCourseTitle(code)} (${code})`; }
 function setStudentUI(){ const st = students[currentStudentKey]; const label = `${st.name || 'Student User'} (${currentStudentKey.toUpperCase()})`; qs('#topStudentName').textContent = label; qs('#navStudentName').textContent = label; if(st.passport){ qs('#studentPassport').outerHTML = `<img id="studentPassport" class="passport" src="${st.passport}" alt="Passport">`; } }
 function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard(); setTimeout(()=>restoreAttemptState(),300); }
 function renderDashboard(){ const st = students[currentStudentKey]; const box = qs('#registeredCourses'); box.innerHTML = ''; st.courses.forEach(code=>{ const div = document.createElement('div'); div.className = 'course-item'; div.innerHTML = `<span class="course-icon">▹</span><span>${formatCourse(code)}</span>`; div.onclick = () => openCourse(code); box.appendChild(div); }); qs('#sideCourseTitle').textContent = st.courses[0] ? `▰ ${st.courses[0]}` : '▰ Courses'; showView('dashboardView'); }
@@ -290,8 +317,15 @@ function loadCourseQuestions(courseCode){ return new Promise((resolve,reject)=>{
 async function openCourse(code){ selectedCourse = code; try{ 
     await loadCourseQuestions(code); 
     // Select only 70 random questions immediately after the full course bank loads.
-    QUESTIONS = shuffleQuestionOptions(prepareAttemptQuestions(QUESTIONS));
+    QUESTIONS = shuffleQuestionOptions(prepareAttemptQuestions(QUESTIONS, getExamQuestionCount(code)));
   }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; updateAttemptDateDisplays(); qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
+
+function getCourseUnits(code){ return COURSE_META[code]?.units || 2; }
+function getCourseTitle(code){ return COURSE_META[code]?.title || COURSE_LIST[code] || code; }
+function getExamQuestionCount(code){ return getCourseUnits(code) >= 3 ? 100 : 70; }
+function convertScoreTo70(raw,total,code){ return getCourseUnits(code) >= 3 ? Math.round((raw/total)*70) : raw; }
+function formatSubmitDate(){ return new Date().toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true}); }
+
 function readableTime(){ const h = Math.floor(timerSeconds/3600); const m = Math.floor((timerSeconds%3600)/60); if(h && !m) return `${h} hour${h>1?'s':''}`; if(h) return `${h} hour ${m} minutes`; return `${m} minutes`; }
 function showStartModal(){ qs('#startModal').classList.add('show'); }
 function hideStartModal(){ qs('#startModal').classList.remove('show'); }
@@ -404,22 +438,30 @@ function finalize(){
   let raw=0; 
   QUESTIONS.forEach((q,i)=>{ if(isCorrectAnswer(q,i)) raw++; }); 
 
-  qsa('input,button').forEach(el=>{
-    if(!['loginBtn','examLogoutBtn'].includes(el.id)) el.disabled=true;
-  }); 
+  const attempted = Object.keys(userAnswers).length;
+  const total = QUESTIONS.length;
+  const units = getCourseUnits(selectedCourse);
+  const finalScore70 = convertScoreTo70(raw, total, selectedCourse);
+  const submittedAt = formatSubmitDate();
+
+  qsa('input,button').forEach(el=>{ if(!['loginBtn','examLogoutBtn'].includes(el.id)) el.disabled=true; }); 
 
   renderSubmittedCorrections();
 
-  qs('#finalResult').innerHTML = `<div class="summary-box">
-    <h2>Attempt submitted</h2>
-    <p><strong>Date:</strong> ${nounCurrentAttemptDate()}</p>
-    <p><strong>Attempted:</strong> ${Object.keys(userAnswers).length} / ${QUESTIONS.length}</p>
-    <p><strong>Score:</strong> ${raw} / ${QUESTIONS.length}</p>
-    <p><strong>Percentage:</strong> ${Math.round((raw / QUESTIONS.length) * 100)}%</p>
-    <p class="small-muted">Corrections are shown only under the questions you failed.</p>
+  qs('#finalResult').innerHTML = `<div class="result-card">
+    <h2 class="result-title">Summary of your previous attempts</h2>
+    <table class="result-table">
+      <thead><tr><th>State</th><th>Marks / ${units >= 3 ? '100.0' : '70.0'}</th><th>Grade / 70.0</th></tr></thead>
+      <tbody><tr><td><strong>Finished</strong><br><span class="result-small">Submitted ${submittedAt}</span><br><span class="result-small">Answered ${attempted} of ${total}</span></td><td>${raw}.0</td><td>${finalScore70}</td></tr></tbody>
+    </table>
+    <div class="result-final-grade">Your final grade for this<br>Exam is ${finalScore70}/70.0.</div>
+    <div class="result-no-more">No more attempts are allowed</div>
   </div>`; 
-  localStorage.removeItem('nounExamAttempt'); window.scrollTo({top:0, behavior:'smooth'});
+
+  localStorage.removeItem('nounExamAttempt'); 
+  window.scrollTo({top:0, behavior:'smooth'});
 }
+
 function escapeHtml(str){ return String(str).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function escapeAttr(str){ return escapeHtml(str).replace(/'/g,'&#39;'); }
 qs('#loginBtn').onclick = login; qs('#startAttemptBtn').onclick = showStartModal; qs('#closeStartModal').onclick = hideStartModal; qs('#cancelStartExam').onclick = hideStartModal; qs('#confirmStartExam').onclick = beginExam; qs('#prevBtn').onclick = () => { if(page>0){ page--; renderPage(); } }; qs('#nextBtn').onclick = () => { if((page+1)*perPage >= QUESTIONS.length) showSubmitModal(); else { page++; renderPage(); } }; qs('#submitBtn').onclick = showSubmitModal; qs('#closeSubmitModal').onclick = hideSubmitModal; qs('#cancelSubmit').onclick = hideSubmitModal; qs('#confirmSubmit').onclick = finalize; qs('#sideMyCourses').onclick = () => { if(!examStarted) renderDashboard(); };
@@ -585,7 +627,7 @@ qs('#pass').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); }); qs
       var div = document.createElement('div');
       div.id = 'attemptInfo70';
       div.className = 'attempt-info-70';
-      div.textContent = '70 questions will be randomly selected for this attempt.';
+      div.textContent = `${getExamQuestionCount(selectedCourse)} questions will be randomly selected for this attempt.`;
       el.insertAdjacentElement('afterend', div);
     }
   }
