@@ -778,5 +778,5 @@ QUESTIONS = [
 {"type":"fill","question":"TRUE/FALSE: Social change can improve or disrupt social stability.","options":{"A":"","B":"","C":"","D":""},"answer":"True"},
 {"type":"fill","question":"TRUE/FALSE: Media dependency limits self-representation of developing countries.","options":{"A":"","B":"","C":"","D":""},"answer":"True"},
 {"type":"fill","question":"TRUE/FALSE: The mass media are integral to modern social organization.","options":{"A":"","B":"","C":"","D":""},"answer":"True"},
-{"type":"fill","question":"TRUE/FALSE: Media freedom strengthens accountability in governance.","options":{"A":"","B":"","C":"","D":""},"answer":"True"},
+{"type":"fill","question":"TRUE/FALSE: Media freedom strengthens accountability in governance.","options":{"A":"","B":"","C":"","D":""},"answer":"True"}
 ];
