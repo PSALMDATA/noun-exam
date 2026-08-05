@@ -26,6 +26,384 @@ QUESTIONS = [
 
 {
 "type":"mcq",
+"question":"Open and distance learning combines _____ distinct concepts.",
+"options":{
+"A":"One",
+"B":"Two",
+"C":"Three",
+"D":"Four"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Which concept is regarded as the forerunner of open and distance learning?",
+"options":{
+"A":"Open learning",
+"B":"Online learning",
+"C":"Distance education",
+"D":"Flexible learning"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"Distance education focuses on teaching methods and _____ for learners who are not physically present.",
+"options":{
+"A":"Curriculum",
+"B":"Technology",
+"C":"Administration",
+"D":"Evaluation"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Distance education is designed to create access to learning when learners are separated by _____.",
+"options":{
+"A":"Age and class",
+"B":"Culture and language",
+"C":"Time or distance or both",
+"D":"Subject and teacher"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"According to the course material, whose three-stage development of distance education is adopted?",
+"options":{
+"A":"Holmberg",
+"B":"Moore",
+"C":"Schultz, Schultz and Embry-Riddle",
+"D":"Wedemeyer"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"The earliest form of distance education was known as _____.",
+"options":{
+"A":"Online education",
+"B":"Open learning",
+"C":"Correspondence education",
+"D":"Broadcast education"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"Correspondence education began during the _____.",
+"options":{
+"A":"Eighteenth century",
+"B":"Mid-nineteenth century",
+"C":"Twentieth century",
+"D":"Twenty-first century"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Which of the following countries was NOT mentioned as one of the pioneers of correspondence education?",
+"options":{
+"A":"Great Britain",
+"B":"France",
+"C":"Germany",
+"D":"Canada"
+},
+"answer":"D"
+},
+
+{
+"type":"mcq",
+"question":"Early correspondence courses mainly used the distribution of printed materials through the _____.",
+"options":{
+"A":"Internet",
+"B":"Telephone",
+"C":"Mail",
+"D":"Radio"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"Who is credited with the first officially recognized attempt at distance education?",
+"options":{
+"A":"Isaac Newton",
+"B":"Sir Isaac Pitman",
+"C":"John Dewey",
+"D":"Charles Babbage"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Sir Isaac Pitman taught _____ through correspondence.",
+"options":{
+"A":"Typing",
+"B":"Accounting",
+"C":"Shorthand",
+"D":"Mathematics"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"Pitman's correspondence courses started in the _____.",
+"options":{
+"A":"1820s",
+"B":"1840s",
+"C":"1860s",
+"D":"1880s"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Which university first offered degrees through distance education?",
+"options":{
+"A":"University of Oxford",
+"B":"University of Cambridge",
+"C":"University of London",
+"D":"University of Wisconsin"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"The University of London's External Programme was chartered in _____.",
+"options":{
+"A":"1828",
+"B":"1848",
+"C":"1858",
+"D":"1891"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"Most students of the University of London's External Programme came from _____.",
+"options":{
+"A":"Asian countries",
+"B":"British Commonwealth countries",
+"C":"European Union countries",
+"D":"North America"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"Correspondence study became a notable component of the University of Wisconsin delivery system in _____.",
+"options":{
+"A":"1858",
+"B":"1874",
+"C":"1891",
+"D":"1916"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"The foundation of the second stage of distance education was laid through the invention of the _____.",
+"options":{
+"A":"Computer",
+"B":"Television",
+"C":"Radio",
+"D":"Internet"
+},
+"answer":"C"
+},
+
+{
+"type":"mcq",
+"question":"The invention that laid the foundation of the second stage of distance education occurred during _____.",
+"options":{
+"A":"World War I",
+"B":"World War II",
+"C":"The Cold War",
+"D":"The Industrial Revolution"
+},
+"answer":"A"
+},
+
+{
+"type":"mcq",
+"question":"The first educational instruction by radio was aired in _____.",
+"options":{
+"A":"1891",
+"B":"1916",
+"C":"1925",
+"D":"1932"
+},
+"answer":"B"
+},
+
+{
+"type":"mcq",
+"question":"The use of radio in distance education became global in _____.",
+"options":{
+"A":"1916",
+"B":"1920",
+"C":"1925",
+"D":"1934"
+},
+"answer":"C"
+},
+{
+"type":"fill",
+"question":"Distance education is a field of education that focuses on teaching methods and _____.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"technology"
+},
+
+{
+"type":"fill",
+"question":"Distance education creates access to learning when _____ or distance or both separate the learner from the source of information.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"time"
+},
+
+{
+"type":"fill",
+"question":"The three-stage development of distance education adopted in the course was proposed by Schultz, Schultz and _____.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"Embry-Riddle"
+},
+
+{
+"type":"fill",
+"question":"The earliest appearance of distance education was in the form of _____ education.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"correspondence"
+},
+
+{
+"type":"fill",
+"question":"Early correspondence courses delivered printed learning materials through the _____.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"mail"
+},
+
+{
+"type":"fill",
+"question":"Sir Isaac Pitman taught _____ by mail.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"shorthand"
+},
+
+{
+"type":"fill",
+"question":"The University of London was the first university to offer _____ through distance education.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"degrees"
+},
+
+{
+"type":"fill",
+"question":"The University of London's External Programme was chartered in _____.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"1858"
+},
+
+{
+"type":"fill",
+"question":"The invention of the _____ laid the foundation for the second stage of distance education.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"radio"
+},
+
+{
+"type":"fill",
+"question":"The use of radio in distance education became global in _____.",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"1925"
+},
+
+{
+"type":"truefalse",
+"question":"Distance education is older than open learning. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+
+{
+"type":"truefalse",
+"question":"Open learning is regarded as the forerunner of distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"False"
+},
+
+{
+"type":"truefalse",
+"question":"Distance education requires learners and teachers to always be physically present in the classroom. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"False"
+},
+
+{
+"type":"truefalse",
+"question":"Correspondence education was the earliest form of distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+
+{
+"type":"truefalse",
+"question":"Sir Isaac Pitman is credited with the first officially recognized attempt at distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+
+{
+"type":"truefalse",
+"question":"The University of Wisconsin first offered degrees through distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"False"
+},
+
+{
+"type":"truefalse",
+"question":"The invention of the radio marked the beginning of the second stage of distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+
+{
+"type":"truefalse",
+"question":"Educational television started before the invention of radio. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"False"
+},
+
+{
+"type":"truefalse",
+"question":"Commercial and public television stations in the USA produced educational programmes for distance education. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+
+{
+"type":"truefalse",
+"question":"According to Demiray and Isman (1999), about 29 million students could receive educational television programmes at home or in school. TRUE/FALSE:",
+"options":{"A":"","B":"","C":"","D":""},
+"answer":"True"
+},
+{
+"type":"mcq",
 "question":"According to the passage, which concept has existed for a longer period?",
 "options":{
 "A":"Open learning",
