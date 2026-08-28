@@ -156,7 +156,8 @@ function secureRandomInt(max){
   if(max <= 0) return 0;
   if(window.crypto && window.crypto.getRandomValues){
     const arr = new Uint32Array(1);
-    window.crypto.getRandomValues(arr);
+    const limit = Math.floor(4294967296 / max) * max;
+    do { window.crypto.getRandomValues(arr); } while(arr[0] >= limit);
     return arr[0] % max;
   }
   return Math.floor(Math.random() * max);
@@ -173,7 +174,39 @@ function shuffleArrayCopy(arr){
   return copy;
 }
 
-function prepareAttemptQuestions(allQuestions,count){ const shuffled=shuffleArrayCopy(allQuestions); const totalToShow=count||QUESTIONS_PER_ATTEMPT; return shuffled.slice(0, Math.min(totalToShow, shuffled.length)); }
+function questionIdentity(q){
+  // Prompt identity survives array reordering, duplicate IDs and option shuffling.
+  return String(q.question || '').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
+}
+function courseStorageKey(kind){
+  return 'noun:v2:' + kind + ':' + encodeURIComponent(currentStudentKey.trim().toLowerCase()) + ':' + encodeURIComponent(selectedCourse.trim().toUpperCase());
+}
+function prepareAttemptQuestions(allQuestions,count){
+  const unique = new Map();
+  for(const q of allQuestions){
+    if(!q || !questionIdentity(q)) continue;
+    const id = questionIdentity(q);
+    if(!unique.has(id)) unique.set(id,q);
+  }
+  if(unique.size < count) throw new Error(`This course needs ${count} unique questions, but only ${unique.size} were loaded. Check questions.js.`);
+  let history;
+  try { history = JSON.parse(localStorage.getItem(courseStorageKey('history')) || '{"round":0,"seen":{}}'); }
+  catch(e){ throw new Error('Question history could not be read. Enable browser storage; do not clear it if you want to keep your history.'); }
+  if(!history || !Number.isSafeInteger(history.round) || history.round < 0 || !history.seen || typeof history.seen !== 'object' || Array.isArray(history.seen)) throw new Error('Question history is damaged. Please contact support.');
+  const seen = new Map(Object.entries(history.seen));
+  for(const value of seen.values()) if(!Number.isSafeInteger(value) || value < 1 || value > history.round) throw new Error('Question history is damaged. Please contact support.');
+  // Random tie order, then unseen first, followed by least recently assigned.
+  const ranked = shuffleArrayCopy([...unique.entries()]);
+  ranked.sort((a,b)=>(seen.get(a[0]) || 0) - (seen.get(b[0]) || 0));
+  const chosen = ranked.slice(0,count);
+  const round = history.round + 1;
+  const retained = new Map([...seen].filter(([id])=>unique.has(id)));
+  chosen.forEach(([id])=>retained.set(id,round));
+  try { localStorage.setItem(courseStorageKey('history'),JSON.stringify({round,seen:Object.fromEntries(retained)})); }
+  catch(e){ throw new Error('Cannot save question history. Enable browser storage or free some space before starting.'); }
+  return shuffleArrayCopy(chosen.map(([,q])=>({...q})));
+}
+
 </script>
 
 <script>
@@ -186,6 +219,11 @@ let selectedCourse = null;
 let currentStudentKey = null;
 let userAnswers = {};
 let examStarted = false;
+let fullQuestionBank = [];
+let courseLoading = false;
+let startingAttempt = false;
+let attemptDeadline = null;
+const DEFAULT_EXAM_SECONDS = 90 * 60;
 const qs = s => document.querySelector(s);
 const qsa = s => Array.from(document.querySelectorAll(s));
 const students = {
@@ -611,14 +649,37 @@ function findStudentKey(input){ const x=input.trim().toLowerCase(); return Objec
 function showView(name){ ['dashboardView','instructionView','examView'].forEach(id=>qs('#'+id).classList.add('hidden')); qs('#'+name).classList.remove('hidden'); qs('#siteFooter').classList.toggle('hidden', name === 'examView'); }
 function formatCourse(code){ return `${getCourseTitle(code)} (${code})`; }
 function setStudentUI(){ const st = students[currentStudentKey]; const label = `${st.name || 'Student User'} (${currentStudentKey.toUpperCase()})`; qs('#topStudentName').textContent = label; qs('#navStudentName').textContent = label; if(st.passport){ qs('#studentPassport').outerHTML = `<img id="studentPassport" class="passport" src="${st.passport}" alt="Passport">`; } }
-function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard(); setTimeout(()=>restoreAttemptState(),300); }
+function login(){ const matric = qs('#matric').value.trim(); const pass = qs('#pass').value.trim(); const msg = qs('#authMsg'); msg.textContent = ''; if(!matric || !pass){ msg.textContent = 'Enter username and password.'; return; } const key = findStudentKey(matric); if(!key || students[key].password !== pass){ msg.textContent = 'Invalid login, please try again.'; return; } currentStudentKey = key; qs('#loginView').classList.add('hidden'); qs('#mainTopbar').classList.remove('hidden'); qs('#appView').classList.remove('hidden'); setAddress('172.16.0.2/exams/Uned/', 'National Open University'); setStudentUI(); renderDashboard();  }
 function renderDashboard(){ const st = students[currentStudentKey]; const box = qs('#registeredCourses'); box.innerHTML = ''; st.courses.forEach(code=>{ const div = document.createElement('div'); div.className = 'course-item'; div.innerHTML = `<span class="course-icon">▹</span><span>${formatCourse(code)}</span>`; div.onclick = () => openCourse(code); box.appendChild(div); }); qs('#sideCourseTitle').textContent = st.courses[0] ? `▰ ${st.courses[0]}` : '▰ Courses'; showView('dashboardView'); }
 function loadCourseQuestions(courseCode){ return new Promise((resolve,reject)=>{ const old = document.getElementById('qFile'); if(old) old.remove(); QUESTIONS = []; const s = document.createElement('script'); s.id = 'qFile'; s.src = `courses/${courseCode}/questions.js?v=${Date.now()}`; s.onload = () => Array.isArray(QUESTIONS) && QUESTIONS.length ? resolve() : reject('Questions file loaded but QUESTIONS is empty.'); s.onerror = () => reject(`Cannot load questions for ${courseCode}. Put the file at courses/${courseCode}/questions.js`); document.body.appendChild(s); }); }
-async function openCourse(code){ selectedCourse = code; try{ 
-    await loadCourseQuestions(code); 
-    // Select only 70 random questions immediately after the full course bank loads.
-    QUESTIONS = shuffleQuestionOptions(prepareAttemptQuestions(QUESTIONS, getExamQuestionCount(code)));
-  }catch(err){ alert(err); return; } userAnswers = {}; page = 0; examStarted = false; qs('#sideCourseTitle').textContent = `▰ ${code}`; qs('#crumbCourse').textContent = code; qs('#instructionCourse').textContent = code; qs('#examCrumbCourse').textContent = code; updateAttemptDateDisplays(); qs('#instructionTime').textContent = readableTime(); qs('#modalTimeLimit').textContent = readableTime(); qs('#modalTimeText').textContent = readableTime(); setAddress(`172.16.0.2/exams/Uned/exam/view.php?id=${Math.floor(Math.random()*9000)+1000}`, `${code}: ${code}`); showView('instructionView'); }
+async function openCourse(code){
+  if(courseLoading || examStarted || startingAttempt) return;
+  if(!students[currentStudentKey]?.courses.includes(code)) return;
+  courseLoading = true;
+  selectedCourse = code;
+  try {
+    await loadCourseQuestions(code);
+    fullQuestionBank = QUESTIONS.slice();
+    QUESTIONS = [];
+    userAnswers = {}; page = 0; examStarted = false;
+    timerSeconds = DEFAULT_EXAM_SECONDS;
+    attemptDeadline = null;
+    qs('#sideCourseTitle').textContent = `▰ ${code}`;
+    qs('#crumbCourse').textContent = code;
+    qs('#instructionCourse').textContent = code;
+    qs('#examCrumbCourse').textContent = code;
+    updateAttemptDateDisplays();
+    qs('#instructionTime').textContent = readableTime();
+    qs('#modalTimeLimit').textContent = readableTime();
+    qs('#modalTimeText').textContent = readableTime();
+    const info = qs('#attemptInfo70');
+    if(info) info.textContent = `${getExamQuestionCount(code)} questions; unseen questions are selected first.`;
+    setAddress(`172.16.0.2/exams/Uned/exam/view.php?course=${code}`, `${code}: ${code}`);
+    showView('instructionView');
+    restoreAttemptState();
+  } catch(err){ fullQuestionBank = []; QUESTIONS = []; alert(String(err)); renderDashboard(); }
+  finally { courseLoading = false; }
+}
 
 function getCourseUnits(code){ return COURSE_META[code]?.units || 2; }
 function getCourseTitle(code){ return COURSE_META[code]?.title || code; }
@@ -629,14 +690,36 @@ function formatSubmitDate(){ return new Date().toLocaleString('en-GB',{weekday:'
 function readableTime(){ const h = Math.floor(timerSeconds/3600); const m = Math.floor((timerSeconds%3600)/60); if(h && !m) return `${h} hour${h>1?'s':''}`; if(h) return `${h} hour ${m} minutes`; return `${m} minutes`; }
 function showStartModal(){ qs('#startModal').classList.add('show'); }
 function hideStartModal(){ qs('#startModal').classList.remove('show'); }
-function beginExam(){ hideStartModal(); updateAttemptDateDisplays(); examStarted = true; page = 0; setAddress(`172.16.0.2/exams/Uned/quiz/attempt.php?attempt=${Date.now()}&cmid=${selectedCourse}`, `${selectedCourse}: ${selectedCourse}`); showView('examView'); buildNav(); renderPage(); startTimer(); }
+async function beginExam(){
+  if(examStarted || startingAttempt || courseLoading || !fullQuestionBank.length) return;
+  startingAttempt = true;
+  try {
+    const start = () => {
+      QUESTIONS = shuffleQuestionOptions(prepareAttemptQuestions(fullQuestionBank,getExamQuestionCount(selectedCourse)));
+      userAnswers = {}; page = 0; timerSeconds = DEFAULT_EXAM_SECONDS;
+      attemptDeadline = Date.now() + timerSeconds * 1000;
+      examStarted = true;
+      hideStartModal(); updateAttemptDateDisplays();
+      qs('#finalResult').innerHTML = '';
+      qsa('input,button').forEach(el=>el.disabled=false);
+      setAddress(`172.16.0.2/exams/Uned/quiz/attempt.php?attempt=${Date.now()}&cmid=${selectedCourse}`, `${selectedCourse}: ${selectedCourse}`);
+      saveAttemptState(); showView('examView'); buildNav(); renderPage(); startTimer();
+    };
+    // Serialize history allocation across tabs in browsers supporting Web Locks.
+    if(navigator.locks) await navigator.locks.request(courseStorageKey('allocation'),start);
+    else start();
+  } catch(err){ alert(String(err)); }
+  finally { startingAttempt = false; }
+}
+
 function buildNav(){ const nav = qs('#navGrid'); nav.innerHTML = ''; QUESTIONS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='nav-num'; d.textContent=i+1; d.onclick=()=>{ page=Math.floor(i/perPage); renderPage(); }; nav.appendChild(d); }); updateNav(); }
 function renderPage(){ const holder = qs('#questionHolder'); holder.classList.remove('submitted-review'); holder.innerHTML = ''; qs('#prevBtn').style.display = ''; qs('#nextBtn').style.display = ''; const sb=qs('#submitBtn'); if(sb) sb.style.display=''; const start = page*perPage, end = Math.min(start+perPage, QUESTIONS.length); for(let i=start;i<end;i++){ const q = QUESTIONS[i]; const row = document.createElement('div'); row.className='question-row'; const ans = userAnswers[i] || ''; let body = `<div class="q-text">${escapeHtml(q.question || '')}</div>`; if((q.type || '').toLowerCase() === 'mcq'){ ['A','B','C','D','E'].forEach(letter=>{ if(q.options && q.options[letter] !== undefined){ body += `<label class="option"><input type="radio" name="q${i}" value="${letter}" ${ans===letter?'checked':''}> ${escapeHtml(q.options[letter])}</label>`; } }); }else{ body += `<input class="fill-input" data-i="${i}" value="${escapeAttr(ans)}" placeholder="Type your answer here">`; } row.innerHTML = `<div class="q-meta"><strong>Question ${i+1}</strong><span>Not yet answered</span><br><span>Marked out of 1.00</span></div><div class="q-card">${body}</div>`; holder.appendChild(row); } qs('#prevBtn').disabled = page === 0; qs('#nextBtn').textContent = end >= QUESTIONS.length ? 'Finish attempt...' : 'Next page'; attachAnswerEvents(); updateNav(); }
-function attachAnswerEvents(){ qsa('input[type=radio]').forEach(r=>{ r.onchange=()=>{ userAnswers[Number(r.name.slice(1))]=r.value; updateNav(); }; }); qsa('.fill-input').forEach(f=>{ f.oninput=()=>{ userAnswers[Number(f.dataset.i)] = f.value.trim(); updateNav(); }; }); }
+function attachAnswerEvents(){ qsa('input[type=radio]').forEach(r=>{ r.onchange=()=>{ userAnswers[Number(r.name.slice(1))]=r.value; updateNav(); saveAttemptState(); }; }); qsa('.fill-input').forEach(f=>{ f.oninput=()=>{ userAnswers[Number(f.dataset.i)] = f.value.trim(); updateNav(); saveAttemptState(); }; }); }
 function updateNav(){ qsa('#navGrid .nav-num').forEach((n,i)=>{ n.classList.toggle('answered', !!userAnswers[i]); const s=page*perPage, e=s+perPage; n.classList.toggle('current', i>=s && i<e); }); }
 function startTimer(){ 
   clearInterval(timerInterval); 
-  let s = timerSeconds; 
+  let s = timerSeconds;
+  if(!attemptDeadline) attemptDeadline = Date.now() + s * 1000; 
   window.remainingSeconds = s;
   const el = qs('#timer'); 
 
@@ -644,6 +727,7 @@ function startTimer(){
   let warnedLastPage = false;
 
   const tick = () => { 
+    s = Math.max(0, Math.ceil((attemptDeadline - Date.now()) / 1000));
     window.remainingSeconds = s;
 
     if(s <= 0){ 
@@ -680,7 +764,7 @@ function startTimer(){
   }; 
 
   tick(); 
-  timerInterval=setInterval(tick,1000); 
+  if(examStarted) timerInterval=setInterval(tick,1000); 
 }
 function showSubmitModal(){ const fn=qs('#fullNav'); fn.innerHTML=''; QUESTIONS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='nav-num'; d.textContent=i+1; if(userAnswers[i]) d.classList.add('answered'); fn.appendChild(d); }); qs('#submitModal').classList.add('show'); }
 function hideSubmitModal(){ qs('#submitModal').classList.remove('show'); }
@@ -733,6 +817,8 @@ function renderSubmittedCorrections(){
 }
 
 function finalize(){ 
+  if(!examStarted) return;
+  examStarted = false;
   hideSubmitModal(); 
   clearInterval(timerInterval); 
   let raw=0; 
@@ -755,10 +841,10 @@ function finalize(){
       <tbody><tr><td><strong>Finished</strong><br><span class="result-small">Submitted ${submittedAt}</span><br><span class="result-small">Answered ${attempted} of ${total}</span></td><td>${raw}.0</td><td>${finalScore70}</td></tr></tbody>
     </table>
     <div class="result-final-grade">Your final grade for this<br>Exam is ${finalScore70}/70.0.</div>
-    <div class="result-no-more">No more attempts are allowed</div>
+    <div class="result-no-more">Log out and log in again to start a fresh attempt.</div>
   </div>`; 
 
-  localStorage.removeItem('nounExamAttempt'); 
+  localStorage.removeItem(courseStorageKey('attempt'));  
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -775,7 +861,7 @@ qs('#pass').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); }); qs
     var btn = document.getElementById('examLogoutBtn');
     if(!btn) return;
     btn.onclick = function(){
-      if(confirm('Are you sure you want to logout? Your current attempt may be lost.')){
+      if(confirm('Are you sure you want to logout? Your current attempt will end. Your question history will be kept.')){
         if(typeof logout === 'function'){ logout(); }
         else { window.location.reload(); }
       }
@@ -976,37 +1062,19 @@ function showToast(msg){
 /* ===== Random option shuffling ===== */
 function shuffleOptions(question){
   if(!question || !question.options) return question;
-
   const letters = Object.keys(question.options);
-  const shuffled = letters.slice();
-
-  for(let i = shuffled.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  const originalAnswer = question.answer;
-  const originalText = question.options[originalAnswer];
-
-  const newOptions = {};
-  const newLetters = ['A','B','C','D','E'];
-
-  shuffled.forEach((oldLetter, idx)=>{
-    newOptions[newLetters[idx]] = question.options[oldLetter];
+  const answer = String(question.answer || '').trim().toUpperCase();
+  // Keep position-dependent choices such as "A and B" / "all of the above" intact.
+  const dependent = /\b(all|none|both|either|neither)\s+(of\s+)?(the\s+)?(above|below)\b|\b[A-E]\s*(and|or|&)\s*[A-E]\b|\b(option|options|choice|choices)\s+[A-E]\b/i;
+  if(!letters.includes(answer) || letters.length > 5 || question.shuffleOptions === false || dependent.test(question.question || '') || Object.values(question.options).some(text=>dependent.test(String(text)))) return {...question,options:{...question.options}};
+  const shuffled = shuffleArrayCopy(letters);
+  const options = {}; let newAnswer = answer;
+  shuffled.forEach((oldLetter,i)=>{
+    const letter = ['A','B','C','D','E'][i];
+    options[letter] = question.options[oldLetter];
+    if(oldLetter === answer) newAnswer = letter;
   });
-
-  let newAnswer = originalAnswer;
-  Object.keys(newOptions).forEach(letter=>{
-    if(newOptions[letter] === originalText){
-      newAnswer = letter;
-    }
-  });
-
-  return {
-    ...question,
-    options:newOptions,
-    answer:newAnswer
-  };
+  return {...question,options,answer:newAnswer};
 }
 
 function shuffleQuestionOptions(questionArray){
@@ -1020,56 +1088,42 @@ function shuffleQuestionOptions(questionArray){
 
 /* ===== Resume attempt ===== */
 function saveAttemptState(){
-  try{
-    const state = {
-      selectedCourse,
-      userAnswers,
-      page,
-      examStarted,
-      timerRemaining: window.remainingSeconds || timerSeconds,
-      QUESTIONS
-    };
-    localStorage.setItem('nounExamAttempt', JSON.stringify(state));
-  }catch(e){}
+  if(!examStarted || !currentStudentKey || !selectedCourse) return;
+  try {
+    localStorage.setItem(courseStorageKey('attempt'),JSON.stringify({
+      version:2, student:currentStudentKey.trim().toLowerCase(), selectedCourse,
+      userAnswers, page, examStarted:true, deadline:attemptDeadline, QUESTIONS
+    }));
+  } catch(e){ showToast('Progress cannot be saved. Keep this page open until you submit.'); }
 }
-
+function saveProgress(){ saveAttemptState(); }
 function restoreAttemptState(){
-  try{
-    const raw = localStorage.getItem('nounExamAttempt');
-    if(!raw) return false;
-
-    const state = JSON.parse(raw);
-    if(!state || !state.examStarted) return false;
-
-    if(!confirm('Resume your previous exam attempt?')){
-      localStorage.removeItem('nounExamAttempt');
-      return false;
-    }
-
-    selectedCourse = state.selectedCourse;
-    userAnswers = state.userAnswers || {};
-    page = state.page || 0;
-    QUESTIONS = state.QUESTIONS || [];
-    examStarted = true;
-
-    if(state.timerRemaining){
-      timerSeconds = state.timerRemaining;
-    }
-
-    qs('#sideCourseTitle').textContent = `▰ ${selectedCourse}`;
-    qs('#crumbCourse').textContent = selectedCourse;
-    qs('#examCrumbCourse').textContent = selectedCourse;
-
-    showView('examView');
-    buildNav();
-    renderPage();
-    startTimer();
-
-    showToast('Previous attempt restored.');
-    return true;
-  }catch(e){
+  let state;
+  try { state = JSON.parse(localStorage.getItem(courseStorageKey('attempt')) || 'null'); }
+  catch(e){ showToast('Saved attempt could not be read. You can start a new attempt.'); return false; }
+  if(!state || state.version !== 2 || state.student !== currentStudentKey.trim().toLowerCase() || state.selectedCourse !== selectedCourse || !state.examStarted || !Array.isArray(state.QUESTIONS) || !state.QUESTIONS.length || !Number.isFinite(state.deadline)) return false;
+  if(!confirm('Resume your unfinished attempt with the SAME questions? Choose Cancel to start a NEW attempt with unseen questions first.')){
+    localStorage.removeItem(courseStorageKey('attempt'));
     return false;
   }
+  QUESTIONS = state.QUESTIONS;
+  userAnswers = state.userAnswers || {};
+  page = Math.max(0,Math.min(Number.isInteger(state.page) ? state.page : 0,Math.ceil(QUESTIONS.length/perPage)-1));
+  attemptDeadline = state.deadline;
+  timerSeconds = Math.max(0,Math.ceil((attemptDeadline-Date.now())/1000));
+  examStarted = true;
+  qs('#finalResult').innerHTML = '';
+  qsa('input,button').forEach(el=>el.disabled=false);
+  showView('examView'); buildNav(); renderPage(); startTimer();
+  if(examStarted) showToast('Unfinished attempt restored; questions and option order are unchanged.');
+  return true;
+}
+function logout(){
+  // Explicit logout abandons this attempt, but never deletes exposure history.
+  examStarted = false;
+  clearInterval(timerInterval);
+  try { if(currentStudentKey && selectedCourse) localStorage.removeItem(courseStorageKey('attempt')); } catch(e){}
+  window.location.reload();
 }
 
 window.addEventListener('beforeunload', function(){
